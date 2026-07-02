@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Claim Pocket"/>
+<title>Claim Pocket — 保険申請ツール</title>
+<style>
+:root{
+  --primary:#1A5276;--primary-deep:#2E86C1;--primary-soft:#E2F0FA;
+  --bg:#F0F7FC;--surface:#FFFFFF;--ink:#1B2B38;--muted:#4B6275;
+  --line:#C8D8E8;--line-soft:#DCE8F5;
+  --danger:#E74C3C;--danger-soft:#FDECEA;
+  --ok:#16A34A;--ok-soft:#DCFCE7;
+  --warn:#B45309;--warn-soft:#FEF3C7;
+  --r:16px;--r-s:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink);min-height:100%;
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",sans-serif;font-size:16px;
+  -webkit-text-size-adjust:100%}
+button{font:inherit;cursor:pointer;touch-action:manipulation}
+input,select,textarea{font:inherit;font-size:16px}
+
+/* ===== ヘッダー ===== */
+.hdr{position:sticky;top:0;z-index:100;
+  background:linear-gradient(135deg,#1A5276,#2E86C1);
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;
+  display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-size:17px;font-weight:900;color:#fff;letter-spacing:.02em}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.85);font-weight:700;margin-top:2px}
+.hdr-badge{font-size:12px;font-weight:800;color:#fff;background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 12px;white-space:nowrap}
+
+/* ===== メイン ===== */
+.main{padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 96px);max-width:640px;margin:0 auto}
+.tab-panel[hidden]{display:none}
+
+/* ===== タブバー ===== */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:120;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);
+  border-top:1px solid var(--line-soft);
+  display:grid;grid-template-columns:repeat(3,1fr);
+  padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px)}
+.tabbar button{background:none;border:none;display:flex;flex-direction:column;align-items:center;
+  gap:2px;padding:6px 4px;border-radius:12px;color:#7A8FA3;font-size:10.5px;font-weight:800}
+.tabbar button .ico{font-size:22px;line-height:1.15}
+.tabbar button.on{color:var(--primary)}
+.tabbar button.on .ico{transform:scale(1.08)}
+.tab-dot{position:relative}
+.tab-dot .n{position:absolute;top:-4px;right:-12px;background:var(--danger);color:#fff;
+  font-size:10px;font-weight:900;border-radius:999px;min-width:17px;height:17px;
+  display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* ===== カード共通 ===== */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(26,82,118,.06)}
+.card-title{font-size:14px;font-weight:900;color:var(--ink);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px}
+.card-title .ico{font-size:18px}
+.card-title .opt{font-size:11px;font-weight:800;color:#8EA0B8;margin-left:auto}
+.card-title .req{font-size:11px;font-weight:800;color:var(--danger);margin-left:auto}
+
+/* ===== 撮影ボタン ===== */
+.cap-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.cap-btn{border:none;border-radius:18px;padding:18px 10px;display:flex;flex-direction:column;
+  align-items:center;gap:6px;font-weight:900;font-size:14px;color:#fff;
+  background:linear-gradient(135deg,#1A5276,#2E86C1);
+  box-shadow:0 8px 20px rgba(26,82,118,.28)}
+.cap-btn:active{transform:scale(.97)}
+.cap-btn .ico{font-size:32px;line-height:1}
+.cap-btn .sub{font-size:10.5px;font-weight:700;opacity:.85}
+.cap-btn.alt{background:#fff;color:var(--primary);border:1.5px solid var(--line);
+  box-shadow:0 4px 12px rgba(26,82,118,.10)}
+
+/* ===== サマリー ===== */
+.sum-bar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.sum-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-s);
+  padding:12px 14px}
+.sum-item .k{font-size:11px;font-weight:800;color:var(--muted);margin-bottom:3px}
+.sum-item .v{font-size:19px;font-weight:900;color:var(--primary)}
+.sum-item .v small{font-size:12px;font-weight:800;color:var(--muted);margin-left:2px}
+
+/* ===== レシートリスト ===== */
+.month-head{display:flex;align-items:center;justify-content:space-between;
+  margin:18px 2px 8px;font-size:14px;font-weight:900;color:var(--ink)}
+.month-head .mtotal{font-size:12.5px;font-weight:800;color:var(--muted)}
+.rc-item{display:flex;align-items:center;gap:12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-s);padding:10px 12px;margin-bottom:8px;
+  width:100%;text-align:left}
+.rc-thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;background:#EAF1FB;
+  border:1px solid var(--line-soft);flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;font-size:24px}
+.rc-body{flex:1;min-width:0}
+.rc-line1{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.rc-person{font-size:14px;font-weight:900;color:var(--ink);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rc-cat{font-size:10px;font-weight:900;border-radius:6px;padding:2px 6px;white-space:nowrap}
+.rc-cat.M{background:#E2F0FA;color:#1A5276}
+.rc-cat.P{background:#EDE9FE;color:#6D28D9}
+.rc-cat.D{background:#FCE7F3;color:#BE185D}
+.rc-line2{font-size:12px;color:var(--muted);font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-right{text-align:right;flex:0 0 auto}
+.rc-amt{font-size:15px;font-weight:900;color:var(--ink);white-space:nowrap}
+.rc-st{font-size:10px;font-weight:900;border-radius:999px;padding:2px 8px;margin-top:4px;display:inline-block}
+.rc-st.todo{background:var(--warn-soft);color:var(--warn)}
+.rc-st.done{background:var(--ok-soft);color:var(--ok)}
+.list-empty{text-align:center;color:#8EA0B8;font-size:13.5px;font-weight:700;
+  padding:34px 10px;line-height:1.7;background:var(--surface);border:1.5px dashed var(--line);
+  border-radius:var(--r)}
+
+/* ===== 申請タブ ===== */
+.sel-item{display:flex;align-items:center;gap:10px;background:var(--surface);
+  border:1.5px solid var(--line);border-radius:var(--r-s);padding:10px 12px;margin-bottom:8px;width:100%;text-align:left}
+.sel-item.on{border-color:var(--primary-deep);background:#F3F9FE;
+  box-shadow:0 0 0 2.5px rgba(46,134,193,.16)}
+.sel-item.dim{opacity:.45}
+.sel-check{width:24px;height:24px;border-radius:8px;border:2px solid #AFC8DD;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;background:#fff}
+.sel-item.on .sel-check{background:var(--primary-deep);border-color:var(--primary-deep)}
+.month-quick{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.mq-chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;
+  padding:7px 14px;font-size:13px;font-weight:800;color:var(--muted)}
+.mq-chip.on{background:var(--primary-deep);border-color:var(--primary-deep);color:#fff}
+.claim-foot{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);z-index:90;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:12px 14px;box-shadow:0 -6px 24px rgba(26,82,118,.14);margin-top:14px}
+.claim-foot-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.claim-foot-row .lab{font-size:13px;font-weight:800;color:var(--muted)}
+.claim-foot-row .tot{font-size:20px;font-weight:900;color:var(--primary)}
+.hist-item{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line-soft)}
+.hist-item:last-child{border-bottom:none}
+.hist-body{flex:1;min-width:0}
+.hist-t{font-size:13.5px;font-weight:900}
+.hist-s{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:2px}
+.hist-btn{border:1.5px solid var(--line);background:#fff;border-radius:10px;
+  padding:7px 10px;font-size:12px;font-weight:800;color:var(--primary);white-space:nowrap}
+.hist-btn.warn{color:var(--danger);border-color:#F4A8A0}
+
+/* ===== フォーム共通 ===== */
+.f{margin-bottom:13px}
+.f:last-child{margin-bottom:0}
+.f>label{display:block;font-size:12.5px;font-weight:800;color:#3C5065;margin-bottom:6px}
+.f>label .req{color:var(--danger);font-size:10.5px;margin-left:4px}
+.f>label .note{color:#8EA0B8;font-size:10.5px;font-weight:700;margin-left:6px}
+.f input,.f select,.f textarea{width:100%;padding:12px 13px;border:1.5px solid var(--line);
+  border-radius:var(--r-s);background:#fff;color:var(--ink);min-height:48px;-webkit-appearance:none;appearance:none}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--primary-deep);
+  box-shadow:0 0 0 3px rgba(46,134,193,.18)}
+.f.bad input,.f.bad select{border-color:var(--danger)!important;box-shadow:0 0 0 3px rgba(231,76,60,.14)}
+.f .err{display:none;font-size:11.5px;color:var(--danger);font-weight:800;margin-top:5px}
+.f.bad .err{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ===== チップ選択(対象者・区分) ===== */
+.pick-row{display:flex;flex-wrap:wrap;gap:8px}
+.pick{border:1.5px solid var(--line);background:#fff;border-radius:999px;
+  padding:9px 16px;font-size:14px;font-weight:800;color:var(--muted)}
+.pick.on{background:var(--primary-deep);border-color:var(--primary-deep);color:#fff}
+.pick.cat-P.on{background:#6D28D9;border-color:#6D28D9}
+.pick.cat-D.on{background:#BE185D;border-color:#BE185D}
+
+/* ===== シート(モーダル) ===== */
+.sheet-wrap{position:fixed;inset:0;z-index:300;background:rgba(27,43,56,.5);
+  display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92dvh;overflow:auto;
+  border-radius:22px 22px 0 0;padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 18px);
+  -webkit-overflow-scrolling:touch}
+.sheet-grip{width:44px;height:5px;border-radius:99px;background:#C3D3E2;margin:4px auto 12px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sheet-title{font-size:17px;font-weight:900}
+.sheet-x{border:none;background:#E5EEF6;color:#4B6275;width:32px;height:32px;
+  border-radius:50%;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.sheet-preview{width:100%;max-height:200px;object-fit:contain;border-radius:var(--r-s);
+  border:1px solid var(--line);background:#fff;margin-bottom:14px}
+.sheet-pdfmark{display:flex;align-items:center;gap:10px;background:#fff;
+  border:1px solid var(--line);border-radius:var(--r-s);padding:12px 14px;margin-bottom:14px;
+  font-size:13.5px;font-weight:800;color:var(--muted)}
+.sheet-pdfmark .ico{font-size:26px}
+
+/* ===== ボタン ===== */
+.btn{border:none;border-radius:14px;padding:15px 16px;font-size:15.5px;font-weight:900;
+  color:#fff;background:linear-gradient(135deg,var(--primary),var(--primary-deep));
+  width:100%;box-shadow:0 8px 18px rgba(26,82,118,.24);letter-spacing:.01em}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;box-shadow:none}
+.btn.soft{background:#fff;color:var(--primary);border:1.5px solid var(--line);box-shadow:none}
+.btn.warn{background:#fff;color:var(--danger);border:1.5px solid #F4A8A0;box-shadow:none}
+.btn.sm{padding:11px 14px;font-size:13.5px;border-radius:12px;width:auto}
+.btn-row{display:flex;gap:10px;margin-top:12px}
+.btn-row .btn{flex:1}
+
+/* ===== 署名 ===== */
+.sig-outer{border:2px dashed #9FB2CC;border-radius:var(--r-s);background:#fff;height:140px;
+  position:relative;touch-action:none;overflow:hidden;-webkit-user-select:none;user-select:none}
+#sigCanvas{display:block;width:100%;height:100%;touch-action:none}
+.sig-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#8FA0B8;font-size:15px;pointer-events:none;font-weight:700}
+.sig-acts{display:flex;justify-content:flex-end;margin-top:8px}
+.sig-acts button{border:none;background:none;color:#7A8FA3;font-size:13.5px;font-weight:800;padding:4px 6px}
+
+/* ===== 通貨スイッチ ===== */
+.cur-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cur-opt{border:1.5px solid var(--line);border-radius:var(--r-s);background:#fff;
+  min-height:48px;font-weight:900;font-size:15px;color:var(--ink)}
+.cur-opt.on{background:var(--primary-deep);border-color:var(--primary-deep);color:#fff}
+.cur-opt.on.jpy{background:#6D28D9;border-color:#6D28D9}
+
+/* ===== 対象者チップ(設定) ===== */
+.mem-row{display:flex;gap:8px}
+.mem-row input{flex:1;min-width:0}
+.mem-row .btn.sm{flex:0 0 auto}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;min-height:24px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
+  border-radius:999px;padding:6px 8px 6px 13px;background:#F5FAFE;font-size:13.5px;font-weight:800;color:#2F4662}
+.chip button{border:none;background:none;color:var(--danger);font-size:17px;line-height:1;
+  width:24px;height:24px;display:flex;align-items:center;justify-content:center;padding:0}
+.mem-msg{font-size:12px;font-weight:800;margin-top:6px;min-height:16px;color:var(--danger)}
+
+/* ===== インフォ/警告ボックス ===== */
+.info-box{background:var(--primary-soft);border:1px solid #BCD8EE;border-radius:var(--r-s);
+  padding:12px 14px;font-size:12.5px;line-height:1.65;color:#1F4A66;font-weight:700;margin-bottom:14px}
+.warn-box{background:var(--warn-soft);border:1px solid #FDE68A;border-radius:var(--r-s);
+  padding:12px 14px;font-size:12.5px;line-height:1.65;color:var(--warn);font-weight:800;margin-bottom:14px}
+.copy-row{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);
+  border-radius:var(--r-s);padding:10px 12px;margin-bottom:8px}
+.copy-row .k{font-size:11px;font-weight:800;color:var(--muted);flex:0 0 52px}
+.copy-row .v{flex:1;min-width:0;font-size:13px;font-weight:800;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.copy-row button{border:1.5px solid var(--line);background:#fff;border-radius:9px;
+  padding:6px 10px;font-size:12px;font-weight:800;color:var(--primary);flex:0 0 auto}
+
+/* ===== ローディング ===== */
+.loading{position:fixed;inset:0;z-index:500;background:rgba(27,43,56,.55);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:44px;height:44px;border-radius:50%;border:4px solid rgba(255,255,255,.3);
+  border-top-color:#fff;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:#fff;font-weight:800;font-size:14px}
+
+/* ===== トースト ===== */
+.toast{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 104px);z-index:600;
+  background:#1B2B38;color:#fff;font-size:13.5px;font-weight:800;
+  border-radius:999px;padding:11px 20px;box-shadow:0 8px 24px rgba(0,0,0,.3);
+  opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;text-align:center}
+.toast.show{opacity:1}
+
+/* ===== ビューア ===== */
+.viewer{position:fixed;inset:0;z-index:400;background:rgba(10,18,26,.92);
+  display:flex;flex-direction:column}
+.viewer-top{display:flex;justify-content:flex-end;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px}
+.viewer img{flex:1;object-fit:contain;min-height:0;width:100%}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div>
+    <div class="hdr-title">🧾 Claim Pocket</div>
+    <div class="hdr-sub">撮って貯めて、月まとめでラク申請</div>
+  </div>
+  <div class="hdr-badge" id="hdrBadge">未申請 0件</div>
+</header>
+
+<main class="main">
+
+  <!-- ============ タブ1: 記録 ============ -->
+  <section id="tabHome" class="tab-panel">
+    <div class="cap-grid">
+      <button class="cap-btn" id="btnCam" type="button">
+        <span class="ico">📷</span>レシートを撮る
+        <span class="sub">病院・薬局・歯医者の会計後に</span>
+      </button>
+      <button class="cap-btn alt" id="btnLib" type="button">
+        <span class="ico">📄</span>写真/PDFを取り込む
+        <span class="sub">メールで届いた領収書など</span>
+      </button>
+    </div>
+
+    <div class="sum-bar">
+      <div class="sum-item"><div class="k">未申請</div><div class="v" id="sumCount">0<small>件</small></div></div>
+      <div class="sum-item"><div class="k">未申請の合計</div><div class="v" id="sumTotal">-</div></div>
+    </div>
+
+    <div id="homeList"></div>
+  </section>
+
+  <!-- ============ タブ2: 申請 ============ -->
+  <section id="tabClaim" class="tab-panel" hidden>
+    <div id="claimProfileWarn" class="warn-box" hidden>
+      ⚠️ 先に「設定」タブで基本情報(契約者・口座・対象者)を登録してください。
+    </div>
+
+    <div id="claimBody">
+      <p style="font-size:13px;color:var(--muted);font-weight:700;line-height:1.6;margin:2px 2px 12px">
+        申請するレシートを選んで、申請書PDFを作成します。<br>申請書1枚につき<b>最大10件</b>までです。
+      </p>
+      <div class="month-quick" id="monthQuick"></div>
+      <div id="claimList"></div>
+
+      <div class="f" id="depBlock" hidden style="margin-top:14px">
+        <label for="depDate">AU出国日 <span class="req">JPY申請では必須</span></label>
+        <input type="date" id="depDate"/>
+      </div>
+
+      <div class="claim-foot" id="claimFoot" hidden>
+        <div class="claim-foot-row">
+          <span class="lab" id="selCountLab">0件を選択中</span>
+          <span class="tot" id="selTotal">-</span>
+        </div>
+        <button class="btn" id="btnMakePdf" type="button">📑 申請書PDFを作成(領収書つき)</button>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <div class="card-title"><span class="ico">✉️</span>メール送付のヒント</div>
+        <p style="font-size:12.5px;color:var(--muted);font-weight:700;line-height:1.6;margin-bottom:10px">
+          PDF作成後の共有シートで「メール」を選ぶと添付済みの新規メールが開きます。宛先と件名は下からコピーして貼り付けてください。
+        </p>
+        <div class="copy-row"><span class="k">宛先</span><span class="v" id="mailToText">jp@csnet.com.au</span><button type="button" data-copy="to">コピー</button></div>
+        <div class="copy-row"><span class="k">件名</span><span class="v" id="mailSubjText">-</span><button type="button" data-copy="subj">コピー</button></div>
+        <div class="copy-row"><span class="k">本文</span><span class="v">Dear Claims Team, ...(定型文)</span><button type="button" data-copy="body">コピー</button></div>
+      </div>
+
+      <div class="card" id="histCard" hidden>
+        <div class="card-title"><span class="ico">🗂️</span>申請履歴</div>
+        <div id="histList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ タブ3: 設定 ============ -->
+  <section id="tabSettings" class="tab-panel" hidden>
+    <div class="info-box">一度保存すれば、次回からずっと自動で申請書に反映されます。</div>
+
+    <div class="card">
+      <div class="card-title"><span class="ico">👤</span>契約者情報<span class="req">必須</span></div>
+      <div class="f" id="fName"><label>氏名(ローマ字)<span class="req">必須</span></label>
+        <input id="sName" autocomplete="name" autocapitalize="characters" placeholder="例: TARO YAMADA"/>
+        <p class="err">氏名を入力してください</p></div>
+      <div class="f" id="fPol"><label>証券番号<span class="note">MEDIPACK0802/ 以降のみ入力</span></label>
+        <input id="sPolicyNo" autocomplete="off" value="MEDIPACK0802/" autocapitalize="characters"/>
+        <p class="err">証券番号を入力してください</p></div>
+      <div class="g2">
+        <div class="f" id="fPhone"><label>電話番号<span class="req">必須</span></label>
+          <input id="sPhone" inputmode="numeric" maxlength="15" placeholder="例: 0400123456"/>
+          <p class="err">数字のみで入力</p></div>
+        <div class="f" id="fEmail"><label>Email<span class="req">必須</span></label>
+          <input id="sEmail" type="email" autocapitalize="off" placeholder="you@example.com"/>
+          <p class="err">形式を確認してください</p></div>
+      </div>
+      <div class="f" id="fEmp"><label>会社名<span class="req">必須</span></label>
+        <input id="sEmployer" autocapitalize="characters" placeholder="例: ABC PTY LTD"/>
+        <p class="err">会社名を入力してください</p></div>
+      <div class="f" id="fAddr"><label>住所<span class="req">必須</span></label>
+        <input id="sAddress" autocapitalize="characters" placeholder="例: 123 COLLINS ST, MELBOURNE VIC"/>
+        <p class="err">住所を入力してください</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="ico">🏦</span>振込先口座<span class="req">必須</span></div>
+      <div class="g2">
+        <div class="f" id="fBank"><label>銀行名</label><input id="sBank" autocapitalize="characters" placeholder="例: ANZ BANK"/><p class="err">必須です</p></div>
+        <div class="f" id="fBranch"><label>支店名</label><input id="sBranch" autocapitalize="characters" placeholder="例: MELBOURNE"/><p class="err">必須です</p></div>
+      </div>
+      <div class="g2">
+        <div class="f" id="fBSB"><label>BSB(6桁)</label><input id="sBSB" inputmode="numeric" maxlength="6" placeholder="例: 013000"/><p class="err">6桁の数字</p></div>
+        <div class="f" id="fAcc"><label>口座番号</label><input id="sAccNo" inputmode="numeric" maxlength="14" placeholder="12345678"/><p class="err">数字のみ</p></div>
+      </div>
+      <div class="f" id="fAccN"><label>口座名義</label><input id="sAccName" autocapitalize="characters" placeholder="例: TARO YAMADA"/><p class="err">必須です</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="ico">👥</span>対象者リスト<span class="req">必須</span></div>
+      <p style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:10px">受診する家族の名前(First name)を登録しておくと、レシート記録時にワンタップで選べます。</p>
+      <div class="mem-row">
+        <input id="newMember" autocapitalize="characters" placeholder="例: HANAKO"/>
+        <button class="btn sm" id="btnAddMember" type="button">追加</button>
+      </div>
+      <div class="chips" id="memberChips"></div>
+      <p class="mem-msg" id="memMsg"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="ico">💱</span>申請通貨<span class="req">必須</span></div>
+      <div class="cur-switch">
+        <button class="cur-opt on" type="button" data-cur="AUD">AUD</button>
+        <button class="cur-opt" type="button" data-cur="JPY">JPY</button>
+      </div>
+      <p style="font-size:11.5px;color:var(--muted);font-weight:700;margin-top:8px">※ JPYは日本で受診した分の申請用。申請時にAU出国日の入力が必要になります。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="ico">✍️</span>署名<span class="opt">任意</span></div>
+      <div class="sig-outer" id="sigOuter">
+        <canvas id="sigCanvas"></canvas>
+        <div class="sig-hint" id="sigHint">ここに指で署名</div>
+      </div>
+      <div class="sig-acts"><button type="button" id="btnSigClear">クリア</button></div>
+    </div>
+
+    <button class="btn" id="btnSaveSettings" type="button">💾 設定を保存</button>
+    <p id="settingsSavedNote" style="text-align:center;font-size:12px;color:var(--ok);font-weight:800;margin-top:10px;min-height:16px"></p>
+  </section>
+</main>
+
+<!-- ============ タブバー ============ -->
+<nav class="tabbar">
+  <button id="tabBtnHome" class="on" type="button"><span class="ico">📷</span>記録</button>
+  <button id="tabBtnClaim" type="button"><span class="ico tab-dot">✈️<span class="n" id="tabBadge" hidden>0</span></span>申請</button>
+  <button id="tabBtnSettings" type="button"><span class="ico">⚙️</span>設定</button>
+</nav>
+
+<!-- ============ 記録シート ============ -->
+<div class="sheet-wrap" id="sheetWrap" hidden>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="sheetTitle">レシートを記録</div>
+      <button class="sheet-x" id="sheetClose" type="button">✕</button>
+    </div>
+    <img class="sheet-preview" id="sheetPreview" alt="レシート" hidden/>
+    <div class="sheet-pdfmark" id="sheetPdfMark" hidden><span class="ico">📄</span><span id="sheetPdfName">PDFファイル</span></div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="f" id="fRcPerson"><label>誰の分?<span class="req">必須</span></label>
+        <div class="pick-row" id="pickPerson"></div>
+        <p class="err">対象者を選んでください(未登録なら設定タブで追加)</p></div>
+      <div class="f" id="fRcCat"><label>区分<span class="req">必須</span></label>
+        <div class="pick-row" id="pickCat">
+          <button class="pick cat-M" type="button" data-cat="M">🩺 一般医療</button>
+          <button class="pick cat-P" type="button" data-cat="P">💊 処方薬</button>
+          <button class="pick cat-D" type="button" data-cat="D">🦷 歯科</button>
+        </div>
+        <p class="err">区分を選んでください</p></div>
+      <div class="f" id="fRcCond" hidden><label>傷病名 / 内容<span class="req">一般医療では必須</span></label>
+        <input id="rcCond" placeholder="例: Hay fever / Consultation"/>
+        <p class="err">一般医療費は傷病名の記入が必要です</p></div>
+      <div class="g2">
+        <div class="f" id="fRcAmt"><label>金額<span class="req">必須</span></label>
+          <input id="rcAmt" inputmode="decimal" maxlength="12" placeholder="0.00"/>
+          <p class="err">金額を入力してください</p></div>
+        <div class="f" id="fRcDate"><label>受診日<span class="req">必須</span></label>
+          <input id="rcDate" type="date"/>
+          <p class="err">今日以前の日付を入力</p></div>
+      </div>
+    </div>
+    <button class="btn" id="btnSaveReceipt" type="button">✅ 保存する</button>
+    <div class="btn-row" id="sheetEditActions" hidden>
+      <button class="btn soft" id="btnViewImage" type="button">🔍 画像を見る</button>
+      <button class="btn warn" id="btnDeleteReceipt" type="button">🗑️ 削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 画像ビューア ============ -->
+<div class="viewer" id="viewer" hidden>
+  <div class="viewer-top"><button class="sheet-x" id="viewerClose" type="button" style="background:rgba(255,255,255,.2);color:#fff">✕</button></div>
+  <img id="viewerImg" alt="レシート拡大"/>
+</div>
+
+<div class="loading" id="loading" hidden>
+  <div class="spinner"></div><p id="loadingText">PDFを作成中...</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<input type="file" id="fileCam" accept="image/*" capture="environment" hidden/>
+<input type="file" id="fileLib" accept="image/*,application/pdf" multiple hidden/>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+(function(){
+"use strict";
+var PROFILE_KEY = "claim_pocket_profile_v1";
+var DB_NAME = "claim_pocket_v1";
+var FIXED_INSURER_EMAIL = "jp@csnet.com.au";
+var POLICY_PREFIX = "MEDIPACK0802/";
+var CLAIM_ROW_MAX = 10;
+var MEMBER_MAX = 10;
+
+/* ---------- 小物 ---------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function pad2(n){ return String(n).padStart(2,"0"); }
+function todayIso(){ var d=new Date(); return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+function dmyAu(sep){ var d=new Date(); var s=sep||"/"; return pad2(d.getDate())+s+pad2(d.getMonth()+1)+s+d.getFullYear(); }
+function isoToAu(iso){ if(!iso)return""; var p=String(iso).split("-"); return p.length===3? p[2]+"/"+p[1]+"/"+p[0] : String(iso); }
+function monthKey(iso){ return String(iso||"").slice(0,7); }
+function monthLabel(key){ var p=String(key||"").split("-"); return p.length===2 ? Number(p[0])+"年"+Number(p[1])+"月" : key; }
+function upAscii(v){ return String(v||"").replace(/[！-～]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);}).toUpperCase(); }
+function digOnly(v,max){ var o=String(v||"").replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248);}).replace(/[^0-9]/g,""); return typeof max==="number"?o.slice(0,max):o; }
+function isEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim()); }
+function uid(){ return Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8); }
+
+function normCur(v){ return String(v||"AUD").toUpperCase()==="JPY"?"JPY":"AUD"; }
+function curDigits(c){ return normCur(c)==="JPY"?0:2; }
+function curMark(c){ return normCur(c)==="JPY"?"¥":"A$"; }
+function parseAmt(v,c){
+  var n=parseFloat(String(v||"").replace(/[０-９]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-65248);}).replace(/,/g,"").replace(/[^0-9.\-]/g,""));
+  if(!isFinite(n))return 0;
+  return curDigits(c)===0?Math.round(n):Math.round(n*100)/100;
+}
+function fmtAmt(v,c){
+  var n=typeof v==="number"?v:parseAmt(v,c);
+  return n.toLocaleString("en-AU",{minimumFractionDigits:curDigits(c),maximumFractionDigits:curDigits(c)});
+}
+function fmtMoney(v,c){ return curMark(c)+" "+fmtAmt(v,c); }
+function catLabel(cat){ return cat==="M"?"M.一般医療費":cat==="P"?"P.処方薬":cat==="D"?"D.歯科":""; }
+function catShort(cat){ return cat==="M"?"一般医療":cat==="P"?"処方薬":cat==="D"?"歯科":""; }
+
+var toastTimer=0;
+function toast(msg){
+  var el=$("toast"); el.textContent=msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){el.classList.remove("show");},2400);
+}
+function showLoading(text){ $("loadingText").textContent=text||"処理中..."; $("loading").hidden=false; }
+function hideLoading(){ $("loading").hidden=true; }
+
+/* ---------- IndexedDB ---------- */
+var dbPromise=null;
+function openDb(){
+  if(dbPromise) return dbPromise;
+  dbPromise=new Promise(function(res,rej){
+    var r=indexedDB.open(DB_NAME,1);
+    r.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains("receipts")) db.createObjectStore("receipts",{keyPath:"id"});
+      if(!db.objectStoreNames.contains("claims")) db.createObjectStore("claims",{keyPath:"id"});
+    };
+    r.onsuccess=function(){res(r.result);};
+    r.onerror=function(){rej(r.error);};
+  });
+  return dbPromise;
+}
+function dbOp(store,mode,fn){
+  return openDb().then(function(db){
+    return new Promise(function(res,rej){
+      var tx=db.transaction(store,mode);
+      var st=tx.objectStore(store);
+      var out=fn(st);
+      tx.oncomplete=function(){res(out&&"result"in out?out.result:undefined);};
+      tx.onerror=function(){rej(tx.error);};
+    });
+  });
+}
+function dbPut(store,val){ return dbOp(store,"readwrite",function(st){return st.put(val);}); }
+function dbDel(store,key){ return dbOp(store,"readwrite",function(st){return st.delete(key);}); }
+function dbAll(store){
+  return openDb().then(function(db){
+    return new Promise(function(res,rej){
+      var r=db.transaction(store,"readonly").objectStore(store).getAll();
+      r.onsuccess=function(){res(r.result||[]);};
+      r.onerror=function(){rej(r.error);};
+    });
+  });
+}
+
+/* ---------- 状態 ---------- */
+var receipts=[];   // メモリキャッシュ
+var claims=[];
+var profile=loadProfile();
+var members=profile.members||[];
+var selectedIds={};      // 申請タブの選択
+var sheetState=null;     // {mode:'new'|'edit', id, blob, thumb, fileType, fileName, person, cat}
+var sigPad={canvas:null,ctx:null,drawing:false,hasStroke:false,dataUrl:""};
+
+function loadProfile(){
+  try{
+    var raw=localStorage.getItem(PROFILE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {
+    name:"",policyNo:POLICY_PREFIX,phone:"",email:"",
+    employer:"",address:"",
+    bank:"",branch:"",bsb:"",accNo:"",accName:"",
+    members:[],currency:"AUD",signature:""
+  };
+}
+function saveProfileToStore(){
+  profile.members=members;
+  profile.signature=sigPad.hasStroke?sigPad.dataUrl:"";
+  try{ localStorage.setItem(PROFILE_KEY,JSON.stringify(profile)); }catch(e){ toast("保存に失敗しました(容量不足の可能性)"); }
+}
+function profileReady(){
+  return !!(profile.name && profile.phone && isEmail(profile.email) && profile.employer &&
+    profile.address && profile.bank && profile.branch && /^\d{6}$/.test(profile.bsb||"") &&
+    profile.accNo && profile.accName && members.length>0 &&
+    String(profile.policyNo||"").replace(POLICY_PREFIX,"").length>0);
+}
+
+/* ---------- 画像処理 ---------- */
+function loadImage(src){
+  return new Promise(function(res,rej){
+    var img=new Image();
+    img.onload=function(){res(img);};
+    img.onerror=function(){rej(new Error("image load error"));};
+    img.src=src;
+  });
+}
+function drawScaled(img,maxDim,quality){
+  var w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+  var scale=Math.min(1,maxDim/Math.max(w,h));
+  var cw=Math.max(1,Math.round(w*scale)), ch=Math.max(1,Math.round(h*scale));
+  var cv=document.createElement("canvas"); cv.width=cw; cv.height=ch;
+  var ctx=cv.getContext("2d");
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,cw,ch);
+  ctx.drawImage(img,0,0,cw,ch);
+  return cv;
+}
+function canvasToBlob(cv,quality){
+  return new Promise(function(res){ cv.toBlob(function(b){res(b);},"image/jpeg",quality); });
+}
+async function processImageFile(file){
+  var url=URL.createObjectURL(file);
+  try{
+    var img=await loadImage(url);
+    var mainCv=drawScaled(img,2000);
+    var blob=await canvasToBlob(mainCv,0.82);
+    var thumbCv=drawScaled(img,340);
+    var thumb=thumbCv.toDataURL("image/jpeg",0.6);
+    return {blob:blob,thumb:thumb};
+  }finally{ URL.revokeObjectURL(url); }
+}
+
+/* ---------- タブ切替 ---------- */
+var TABS=["Home","Claim","Settings"];
+function goTab(name){
+  TABS.forEach(function(t){
+    $("tab"+t).hidden=(t!==name);
+    $("tabBtn"+t).classList.toggle("on",t===name);
+  });
+  if(name==="Home") renderHome();
+  if(name==="Claim") renderClaim();
+  if(name==="Settings") setTimeout(resizeSig,0);
+  window.scrollTo(0,0);
+}
+
+/* ---------- ヘッダー/バッジ ---------- */
+function unclaimed(){ return receipts.filter(function(r){return !r.claimedAt;}); }
+function updateBadges(){
+  var list=unclaimed();
+  var total=list.reduce(function(s,r){return s+parseAmt(r.amount,profile.currency);},0);
+  $("hdrBadge").textContent="未申請 "+list.length+"件";
+  $("sumCount").innerHTML=list.length+"<small>件</small>";
+  $("sumTotal").textContent=list.length?fmtMoney(total,profile.currency):"-";
+  var badge=$("tabBadge");
+  badge.hidden=list.length===0;
+  badge.textContent=String(list.length);
+}
+
+/* ---------- 記録タブ ---------- */
+function groupByMonth(list){
+  var map={};
+  list.forEach(function(r){
+    var k=monthKey(r.date)||"不明";
+    (map[k]=map[k]||[]).push(r);
+  });
+  return Object.keys(map).sort().reverse().map(function(k){
+    map[k].sort(function(a,b){ return a.date<b.date?1:-1; });
+    return {key:k,items:map[k]};
+  });
+}
+function receiptItemHtml(r,forClaim){
+  var cur=profile.currency;
+  var st=r.claimedAt
+    ? '<span class="rc-st done">申請済</span>'
+    : '<span class="rc-st todo">未申請</span>';
+  var thumb=r.fileType==="pdf"
+    ? '<span class="rc-thumb">📄</span>'
+    : '<img class="rc-thumb" src="'+r.thumb+'" alt=""/>';
+  return thumb+
+    '<span class="rc-body">'+
+      '<span class="rc-line1"><span class="rc-person">'+esc(r.person||"?")+'</span>'+
+      '<span class="rc-cat '+esc(r.category)+'">'+esc(catShort(r.category))+'</span></span>'+
+      '<span class="rc-line2">'+esc(isoToAu(r.date))+(r.condition?" ・ "+esc(r.condition):"")+'</span>'+
+    '</span>'+
+    '<span class="rc-right"><span class="rc-amt">'+esc(fmtMoney(r.amount,cur))+'</span><br>'+(forClaim?"":st)+'</span>';
+}
+function renderHome(){
+  updateBadges();
+  var wrap=$("homeList");
+  if(!receipts.length){
+    wrap.innerHTML='<div class="list-empty">まだレシートがありません。<br>会計が終わったらその場で📷ボタン。<br>それだけで申請準備は完了です。</div>';
+    return;
+  }
+  var cur=profile.currency;
+  var html="";
+  groupByMonth(receipts).forEach(function(g){
+    var mTotal=g.items.reduce(function(s,r){return s+parseAmt(r.amount,cur);},0);
+    var todo=g.items.filter(function(r){return !r.claimedAt;}).length;
+    html+='<div class="month-head"><span>'+esc(monthLabel(g.key))+(todo?' <span style="color:var(--warn);font-size:12px">未申請'+todo+'件</span>':"")+
+      '</span><span class="mtotal">'+esc(fmtMoney(mTotal,cur))+'</span></div>';
+    g.items.forEach(function(r){
+      html+='<button class="rc-item" type="button" data-edit="'+esc(r.id)+'">'+receiptItemHtml(r,false)+'</button>';
+    });
+  });
+  wrap.innerHTML=html;
+  wrap.querySelectorAll("[data-edit]").forEach(function(el){
+    el.addEventListener("click",function(){ openEditSheet(el.getAttribute("data-edit")); });
+  });
+}
+
+/* ---------- 記録シート ---------- */
+function renderPersonPicks(){
+  var box=$("pickPerson");
+  if(!members.length){
+    box.innerHTML='<span style="font-size:13px;color:var(--danger);font-weight:800">対象者が未登録です。設定タブで追加してください。</span>';
+    return;
+  }
+  box.innerHTML=members.map(function(m){
+    return '<button class="pick'+(sheetState&&sheetState.person===m?" on":"")+'" type="button" data-person="'+esc(m)+'">'+esc(m)+'</button>';
+  }).join("");
+  box.querySelectorAll("[data-person]").forEach(function(b){
+    b.addEventListener("click",function(){
+      sheetState.person=b.getAttribute("data-person");
+      box.querySelectorAll(".pick").forEach(function(x){x.classList.toggle("on",x===b);});
+      $("fRcPerson").classList.remove("bad");
+    });
+  });
+}
+function syncCatUi(){
+  var cat=sheetState?sheetState.cat:"";
+  document.querySelectorAll("#pickCat .pick").forEach(function(b){
+    b.classList.toggle("on",b.getAttribute("data-cat")===cat);
+  });
+  $("fRcCond").hidden=cat!=="M";
+}
+function openSheetCommon(){
+  $("fRcPerson").classList.remove("bad");
+  $("fRcCat").classList.remove("bad");
+  $("fRcCond").classList.remove("bad");
+  $("fRcAmt").classList.remove("bad");
+  $("fRcDate").classList.remove("bad");
+  renderPersonPicks(); syncCatUi();
+  $("rcAmt").setAttribute("inputmode",normCur(profile.currency)==="JPY"?"numeric":"decimal");
+  $("rcAmt").placeholder=normCur(profile.currency)==="JPY"?"0":"0.00";
+  $("sheetWrap").hidden=false;
+  document.body.style.overflow="hidden";
+}
+function openNewSheet(payload){
+  sheetState={mode:"new",id:uid(),blob:payload.blob,thumb:payload.thumb,
+    fileType:payload.fileType,fileName:payload.fileName||"",
+    person:members.length===1?members[0]:"",cat:""};
+  $("sheetTitle").textContent="レシートを記録";
+  if(payload.fileType==="pdf"){
+    $("sheetPreview").hidden=true;
+    $("sheetPdfMark").hidden=false;
+    $("sheetPdfName").textContent=payload.fileName||"PDFファイル";
+  }else{
+    $("sheetPreview").src=payload.thumb; $("sheetPreview").hidden=false;
+    $("sheetPdfMark").hidden=true;
+  }
+  $("rcCond").value=""; $("rcAmt").value=""; $("rcDate").value=todayIso();
+  $("rcDate").max=todayIso();
+  $("sheetEditActions").hidden=true;
+  openSheetCommon();
+}
+function openEditSheet(id){
+  var r=receipts.find(function(x){return x.id===id;});
+  if(!r) return;
+  sheetState={mode:"edit",id:r.id,blob:r.blob,thumb:r.thumb,fileType:r.fileType,
+    fileName:r.fileName||"",person:r.person,cat:r.category};
+  $("sheetTitle").textContent=r.claimedAt?"記録の確認(申請済)":"記録の編集";
+  if(r.fileType==="pdf"){
+    $("sheetPreview").hidden=true; $("sheetPdfMark").hidden=false;
+    $("sheetPdfName").textContent=r.fileName||"PDFファイル";
+  }else{
+    $("sheetPreview").src=r.thumb; $("sheetPreview").hidden=false;
+    $("sheetPdfMark").hidden=true;
+  }
+  $("rcCond").value=r.condition||""; $("rcAmt").value=r.amount||"";
+  $("rcDate").value=r.date||todayIso(); $("rcDate").max=todayIso();
+  $("sheetEditActions").hidden=false;
+  $("btnViewImage").hidden=r.fileType==="pdf";
+  openSheetCommon();
+}
+function closeSheet(){
+  $("sheetWrap").hidden=true;
+  document.body.style.overflow="";
+  sheetState=null;
+}
+function validateSheet(){
+  var ok=true;
+  if(!sheetState.person){ $("fRcPerson").classList.add("bad"); ok=false; }
+  if(!sheetState.cat){ $("fRcCat").classList.add("bad"); ok=false; }
+  if(sheetState.cat==="M" && !$("rcCond").value.trim()){ $("fRcCond").classList.add("bad"); ok=false; }
+  if(!(parseAmt($("rcAmt").value,profile.currency)>0)){ $("fRcAmt").classList.add("bad"); ok=false; }
+  var d=$("rcDate").value;
+  if(!d || d>todayIso()){ $("fRcDate").classList.add("bad"); ok=false; }
+  return ok;
+}
+async function saveReceiptFromSheet(){
+  if(!validateSheet()) return;
+  var existing=sheetState.mode==="edit"?receipts.find(function(x){return x.id===sheetState.id;}):null;
+  var rec={
+    id:sheetState.id,
+    person:sheetState.person,
+    category:sheetState.cat,
+    condition:sheetState.cat==="M"?$("rcCond").value.trim():$("rcCond").value.trim(),
+    amount:String(parseAmt($("rcAmt").value,profile.currency)),
+    date:$("rcDate").value,
+    fileType:sheetState.fileType,
+    fileName:sheetState.fileName||"",
+    blob:sheetState.blob,
+    thumb:sheetState.thumb,
+    createdAt:existing?existing.createdAt:new Date().toISOString(),
+    claimedAt:existing?existing.claimedAt:null,
+    claimId:existing?existing.claimId:null
+  };
+  try{
+    await dbPut("receipts",rec);
+  }catch(e){
+    toast("保存に失敗しました"); return;
+  }
+  var idx=receipts.findIndex(function(x){return x.id===rec.id;});
+  if(idx>=0) receipts[idx]=rec; else receipts.push(rec);
+  closeSheet();
+  toast(sheetState===null&&existing?"更新しました":"保存しました ✅");
+  renderHome();
+}
+async function deleteReceipt(){
+  if(!sheetState||sheetState.mode!=="edit") return;
+  if(!confirm("このレシートを削除します。よろしいですか?")) return;
+  try{ await dbDel("receipts",sheetState.id); }catch(e){ toast("削除に失敗しました"); return; }
+  receipts=receipts.filter(function(x){return x.id!==sheetState.id;});
+  closeSheet();
+  toast("削除しました");
+  renderHome();
+}
+
+/* ---------- ファイル取り込み ---------- */
+async function handleFiles(files){
+  var arr=Array.from(files||[]);
+  if(!arr.length) return;
+  // 複数ファイルは順番にシートを開く(1件ずつ確定)
+  var queue=arr.slice();
+  async function next(){
+    var f=queue.shift();
+    if(!f) return;
+    try{
+      if(f.type==="application/pdf"){
+        openNewSheet({blob:f,thumb:"",fileType:"pdf",fileName:f.name});
+      }else{
+        showLoading("画像を処理中...");
+        var p=await processImageFile(f);
+        hideLoading();
+        openNewSheet({blob:p.blob,thumb:p.thumb,fileType:"image",fileName:f.name});
+      }
+      // 次のファイルはシートが閉じられた後に
+      if(queue.length){
+        var watch=setInterval(function(){
+          if($("sheetWrap").hidden){ clearInterval(watch); next(); }
+        },400);
+      }
+    }catch(e){
+      hideLoading();
+      toast("ファイルを読み込めませんでした");
+      if(queue.length) next();
+    }
+  }
+  next();
+}
+
+/* ---------- 申請タブ ---------- */
+function renderClaim(){
+  var ready=profileReady();
+  $("claimProfileWarn").hidden=ready;
+  var list=unclaimed().slice().sort(function(a,b){return a.date<b.date?-1:1;});
+  var cur=profile.currency;
+
+  $("depBlock").hidden=normCur(cur)!=="JPY";
+  $("mailSubjText").textContent=mailSubject();
+
+  // 月チップ
+  var months={};
+  list.forEach(function(r){ var k=monthKey(r.date); months[k]=(months[k]||0)+1; });
+  var mkeys=Object.keys(months).sort();
+  $("monthQuick").innerHTML=mkeys.length<2?"":
+    '<button class="mq-chip" type="button" data-mq="all">すべて</button>'+
+    mkeys.map(function(k){
+      return '<button class="mq-chip" type="button" data-mq="'+esc(k)+'">'+esc(monthLabel(k))+'('+months[k]+')</button>';
+    }).join("");
+  $("monthQuick").querySelectorAll("[data-mq]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var k=b.getAttribute("data-mq");
+      selectedIds={};
+      var pool=k==="all"?list:list.filter(function(r){return monthKey(r.date)===k;});
+      pool.slice(0,CLAIM_ROW_MAX).forEach(function(r){selectedIds[r.id]=true;});
+      if(pool.length>CLAIM_ROW_MAX) toast("10件を超える分は次回の申請に回してください");
+      renderClaim();
+    });
+  });
+
+  // リスト
+  var wrap=$("claimList");
+  if(!list.length){
+    wrap.innerHTML='<div class="list-empty">未申請のレシートはありません 🎉<br>「記録」タブで撮影するとここに並びます。</div>';
+    $("claimFoot").hidden=true;
+  }else{
+    var selCount=Object.keys(selectedIds).filter(function(id){return selectedIds[id];}).length;
+    var html="";
+    groupByMonth(list).forEach(function(g){
+      html+='<div class="month-head"><span>'+esc(monthLabel(g.key))+'</span></div>';
+      g.items.forEach(function(r){
+        var on=!!selectedIds[r.id];
+        var dim=!on&&selCount>=CLAIM_ROW_MAX;
+        html+='<button class="sel-item'+(on?" on":"")+(dim?" dim":"")+'" type="button" data-sel="'+esc(r.id)+'">'+
+          '<span class="sel-check">'+(on?"✓":"")+'</span>'+receiptItemHtml(r,true)+'</button>';
+      });
+    });
+    wrap.innerHTML=html;
+    wrap.querySelectorAll("[data-sel]").forEach(function(el){
+      el.addEventListener("click",function(){
+        var id=el.getAttribute("data-sel");
+        var now=Object.keys(selectedIds).filter(function(k){return selectedIds[k];}).length;
+        if(!selectedIds[id] && now>=CLAIM_ROW_MAX){ toast("1回の申請書は10件までです"); return; }
+        selectedIds[id]=!selectedIds[id];
+        renderClaim();
+      });
+    });
+    var sel=list.filter(function(r){return selectedIds[r.id];});
+    var total=sel.reduce(function(s,r){return s+parseAmt(r.amount,cur);},0);
+    $("selCountLab").textContent=sel.length+"件を選択中"+(sel.length?"("+CLAIM_ROW_MAX+"件まで)":"");
+    $("selTotal").textContent=sel.length?fmtMoney(total,cur):"-";
+    $("claimFoot").hidden=false;
+    $("btnMakePdf").disabled=!sel.length;
+  }
+  renderHistory();
+}
+function renderHistory(){
+  var card=$("histCard");
+  if(!claims.length){ card.hidden=true; return; }
+  card.hidden=false;
+  var sorted=claims.slice().sort(function(a,b){return a.createdAt<b.createdAt?1:-1;});
+  $("histList").innerHTML=sorted.map(function(c){
+    var d=new Date(c.createdAt);
+    return '<div class="hist-item"><div class="hist-body">'+
+      '<div class="hist-t">'+esc(d.getFullYear()+"/"+pad2(d.getMonth()+1)+"/"+pad2(d.getDate()))+" 申請("+c.receiptIds.length+"件)</div>"+
+      '<div class="hist-s">'+esc(c.totalText||"")+" ・ "+esc(c.filename)+'</div></div>'+
+      '<button class="hist-btn" type="button" data-reshare="'+esc(c.id)+'">共有</button>'+
+      '<button class="hist-btn warn" type="button" data-undo="'+esc(c.id)+'">取消</button></div>';
+  }).join("");
+  $("histList").querySelectorAll("[data-reshare]").forEach(function(b){
+    b.addEventListener("click",function(){ reshareClaim(b.getAttribute("data-reshare")); });
+  });
+  $("histList").querySelectorAll("[data-undo]").forEach(function(b){
+    b.addEventListener("click",function(){ undoClaim(b.getAttribute("data-undo")); });
+  });
+}
+async function undoClaim(id){
+  var c=claims.find(function(x){return x.id===id;});
+  if(!c) return;
+  if(!confirm("この申請を取り消して、レシートを「未申請」に戻しますか?\n(送信済みメールには影響しません)")) return;
+  for(var i=0;i<receipts.length;i++){
+    if(receipts[i].claimId===id){
+      receipts[i].claimedAt=null; receipts[i].claimId=null;
+      await dbPut("receipts",receipts[i]);
+    }
+  }
+  await dbDel("claims",id);
+  claims=claims.filter(function(x){return x.id!==id;});
+  toast("申請を取り消しました");
+  renderClaim(); updateBadges();
+}
+async function reshareClaim(id){
+  var c=claims.find(function(x){return x.id===id;});
+  if(!c||!c.pdfBlob){ toast("PDFが見つかりません"); return; }
+  await sharePdf(c.pdfBlob,c.filename);
+}
+
+/* ---------- メール文面 ---------- */
+function mailSubject(){
+  return "Claim Submission: "+(profile.name||"-")+" - "+dmyAu("/");
+}
+function mailBody(){
+  return ["Dear Claims Team,","",
+    "Please find the attached documents for my insurance claim.","",
+    "Policyholder: "+(profile.name||"-"),"",
+    "Policy Number: "+(profile.policyNo||"-"),"",
+    "Please let me know if you need any further information.","",
+    "Best regards,","",profile.name||"-"].join("\n");
+}
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){toast("コピーしました");},function(){fallbackCopy(t);});
+  }else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  var ta=document.createElement("textarea");
+  ta.value=t; ta.style.position="fixed"; ta.style.left="-9999px";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast("コピーしました"); }catch(e){ toast("コピーできませんでした"); }
+  document.body.removeChild(ta);
+}
+
+/* ---------- 申請書HTML(PC版フォーマットを踏襲) ---------- */
+function buildClaimHTML(p,list,cm){
+  var today=dmyAu("/");
+  var cur=normCur(cm.currency);
+  var total=list.reduce(function(s,r){return s+parseAmt(r.amount,cur);},0);
+  var totalText=fmtMoney(total,cur);
+  var zeroText=fmtMoney(0,cur);
+  var B="border:1pt solid #000;";
+  var hdrS=B+"background:#AEB6B9;color:#1f2423;font-weight:700;padding:5px 8px;";
+  var lblS=B+"background:#E8ECEE;font-weight:700;padding:4px 6px;";
+  var valS=B+"background:#fff;padding:4px 6px;font-size:11px;";
+  var insHdrS=B+"background:#AEB6B9;color:#1f2423;font-weight:700;text-align:center;padding:4px 3px;";
+  var tblS="width:100%;border-collapse:collapse;font-size:10px;line-height:1.35;font-family:sans-serif";
+  var gap='<div style="height:6px"></div>';
+  var h="";
+  h+='<div style="text-align:center;padding:8px 4px 2px">';
+  h+='<div style="font-size:16px;font-weight:900;letter-spacing:2px;font-family:sans-serif">メディパック M/S 医療保険金請求書</div>';
+  h+='<div style="font-size:8px;margin-top:2px;letter-spacing:0.5px;font-family:sans-serif">MEDIPACK MEDICAL EXPENSES POLICY CLAIM FORM -- MITSUI SUMITOMO INSURANCE CO. LIMITED</div>';
+  h+="</div>";
+  h+='<div style="text-align:center;padding:3px;font-size:9px;color:#D32F2F;font-weight:700;font-family:sans-serif">※ 90日以内にご請求下さいますようお願い申し上げます</div>';
+  h+='<div style="padding:4px 6px;font-size:8px;color:#333;font-family:sans-serif;line-height:1.4">';
+  h+="フォーム記入後、領収書のコピーとともに下記Eメールアドレス宛にご送付ください。領収書の原本は保険金支払いまで必ず保管ください。<br>";
+  h+="<i>Please send your completed Claim Form to the following email address.</i><br>";
+  h+='<b style="color:#5f6b6e">送付先 / Send to: '+esc(FIXED_INSURER_EMAIL)+"</b></div>";
+  h+=gap;
+  h+='<table style="'+tblS+'">';
+  h+='<tr><td colspan="7" style="'+hdrS+'font-size:11px">契約者情報 / Policy Holder Information</td></tr>';
+  h+='<tr><td colspan="2" style="'+lblS+'">会社名/ Employer</td><td colspan="5" style="'+valS+'">'+esc(p.employer)+"</td></tr>";
+  h+='<tr><td colspan="2" style="'+lblS+'">氏名 / Name</td><td colspan="2" style="'+valS+'">'+esc(p.name)+'</td>';
+  h+='<td colspan="2" style="'+lblS+'">証券番号/ Policy No.</td><td style="'+valS+'">'+esc(p.policyNo)+"</td></tr>";
+  h+='<tr><td colspan="7" style="'+hdrS+'font-size:11px">振込先口座情報 / Bank Account Details</td></tr>';
+  h+='<tr><td colspan="2" style="'+lblS+'">銀行名/ Bank</td><td colspan="5" style="'+valS+'">'+esc(p.bank)+"</td></tr>";
+  h+='<tr><td colspan="2" style="'+lblS+'">支店名/ Branch</td><td colspan="2" style="'+valS+'">'+esc(p.branch)+'</td>';
+  h+='<td colspan="2" style="'+lblS+'">銀行支店コード/ BSB</td><td style="'+valS+'">'+esc(p.bsb)+"</td></tr>";
+  h+='<tr><td colspan="2" style="'+lblS+'">口座番号/ Account No.</td><td colspan="2" style="'+valS+'">'+esc(p.accNo)+'</td>';
+  h+='<td colspan="2" style="'+lblS+'">口座名義/ Account Name</td><td style="'+valS+'">'+esc(p.accName)+"</td></tr>";
+  h+='<tr><td colspan="7" style="'+hdrS+'font-size:11px">連絡先情報 / Contact Information</td></tr>';
+  h+='<tr><td colspan="2" style="'+lblS+'">Email</td><td colspan="5" style="'+valS+'">'+esc(p.email)+"</td></tr>";
+  h+='<tr><td colspan="2" style="'+lblS+'">電話番号/携帯番号</td><td colspan="5" style="'+valS+'">'+esc(p.phone)+"</td></tr>";
+  h+='<tr><td colspan="2" style="'+lblS+'">住所/ Address</td><td colspan="5" style="'+valS+'">'+esc(p.address)+"</td></tr>";
+  h+="</table>";
+  h+=gap;
+  h+='<table style="'+tblS+'">';
+  h+='<tr><td colspan="5" rowspan="2" style="'+hdrS+'font-size:11px;vertical-align:middle;text-align:left;padding-left:8px">請求明細 / Claim Details</td>';
+  h+='<td colspan="2" style="'+insHdrS+'font-size:9px">保険会社記入欄<br>OFFICE USE ONLY</td></tr>';
+  h+='<tr></tr>';
+  var chS='text-align:center;vertical-align:bottom;line-height:1.2;height:56px;padding-top:10px;padding-bottom:4px;';
+  var ohS='vertical-align:bottom;line-height:1.2;height:56px;padding-top:10px;padding-bottom:4px;';
+  h+="<tr>";
+  h+='<td style="'+lblS+chS+'font-size:9px;width:14%"><b>名前</b><br>First Name</td>';
+  h+='<td style="'+lblS+chS+'font-size:9px;width:14%"><b>治療日</b><br>Date of<br>Treatment</td>';
+  h+='<td style="'+lblS+chS+'font-size:9px;width:12%"><b>区分</b><br>Category<br>(M.一般医療費 / P.処方薬 / D.歯科)</td>';
+  h+='<td style="'+lblS+chS+'font-size:9px;width:18%"><b>傷病名 / 症状</b><br>Condition</td>';
+  h+='<td style="'+lblS+chS+'font-size:9px;width:14%"><b>支払済金額</b><br>Amount Paid ('+esc(cur)+')</td>';
+  h+='<td style="'+insHdrS+ohS+'font-size:8px;width:14%">Comment</td>';
+  h+='<td style="'+insHdrS+ohS+'font-size:8px;width:14%">Refund Due</td>';
+  h+="</tr>";
+  var rowCount=Math.max(10,list.length);
+  for(var i=0;i<rowCount;i++){
+    var c=list[i];
+    h+="<tr>";
+    h+='<td style="'+valS+'text-align:center">'+(c?esc(c.person):"")+"</td>";
+    h+='<td style="'+valS+'text-align:center">'+(c?isoToAu(c.date):"")+"</td>";
+    h+='<td style="'+valS+'text-align:center">'+(c?esc(catLabel(c.category)):"")+"</td>";
+    h+='<td style="'+valS+'text-align:center">'+(c?(c.condition?esc(c.condition):"-"):"")+"</td>";
+    h+='<td style="'+valS+'text-align:right">'+(c?esc(fmtAmt(c.amount,cur)):"")+"</td>";
+    h+='<td style="'+B+'background:#f5f5f5"></td>';
+    h+='<td style="'+B+'background:#f5f5f5"></td>';
+    h+="</tr>";
+  }
+  h+="<tr>";
+  h+='<td colspan="4" style="'+B+'text-align:right;font-weight:900;padding:3px 8px;background:#E8EDF2;font-size:11px">TOTAL</td>';
+  h+='<td style="'+B+'text-align:right;font-weight:900;padding:3px 6px;background:#fff;font-size:11px;color:#D32F2F">'+esc(totalText)+"</td>";
+  h+='<td style="'+B+'text-align:right;font-weight:900;padding:3px 6px;background:#f5f5f5;font-size:9px">TOTAL</td>';
+  h+='<td style="'+B+'text-align:right;font-weight:900;padding:3px 6px;background:#f5f5f5;font-size:11px">'+esc(zeroText)+"</td>";
+  h+="</tr></table>";
+  h+=gap;
+  if(cur==="JPY"){
+    h+='<table style="'+tblS+'"><tr>';
+    h+='<td style="'+lblS+'width:35%">オーストラリア出国日 / AU Departure Date</td>';
+    h+='<td style="'+valS+'">'+esc(isoToAu(cm.departureDate)||"-")+"</td></tr></table>";
+    h+=gap;
+  }
+  h+='<table style="'+tblS+'">';
+  h+='<tr><td style="'+hdrS+'font-size:11px">宣誓 / Declaration</td></tr>';
+  h+='<tr><td style="border:1pt solid #000;padding:5px 7px;background:#fff;font-size:8.4px;line-height:1.32;color:#333;text-align:left">';
+  h+='<div style="margin-bottom:1px">&#10003; The information on this form and any attached documents is correct and complete.</div>';
+  h+='<div style="margin-bottom:1px">&#10003; I have not withheld any information that could affect this claim.</div>';
+  h+='<div style="margin-bottom:1px">&#10003; I am the Policy Owner (or nominated beneficiary if the Policy Owner is deceased), and I understand benefits are paid to me for an insured person.</div>';
+  h+='<div style="margin-bottom:1px">&#10003; I have read the Privacy Statement and agree to the collection, use, and disclosure of my personal information as described.</div>';
+  h+='<div style="margin-bottom:1px">&#10003; I am authorized to provide personal, sensitive, and health information for each insured person in this claim.</div>';
+  h+='<div>&#10003; I authorize hospitals, physicians, and other providers to release relevant medical information to the insurer or its claim agent (Japan Insurance Services Division of Aon Risk Services Australia Ltd). A copy of this authorization is as valid as the original, and I have consent from each insured person for whom this claim is made.</div>';
+  h+="</td></tr></table>";
+  h+=gap;
+  h+='<table style="'+tblS+'"><tr>';
+  h+='<td style="'+hdrS+'font-size:13px;text-align:center;vertical-align:middle;width:25%"><b>署名</b><br>Signature</td>';
+  h+='<td style="'+valS+'padding:4px;min-height:40px;vertical-align:middle;width:35%">'+(p.signature?('<img src="'+p.signature+'" style="height:40px">'):"")+"</td>";
+  h+='<td style="'+hdrS+'font-size:13px;text-align:center;vertical-align:middle;width:15%"><b>日付</b><br>Date</td>';
+  h+='<td style="'+valS+'text-align:center;vertical-align:middle;font-size:14px;font-weight:700;width:25%">'+today+"</td>";
+  h+="</tr></table>";
+  h+='<div style="padding:4px 6px;font-size:7px;color:#555;text-align:center;font-style:italic;font-family:sans-serif;margin-top:4px">';
+  h+="ALL MEDIPACK claims are administered and assessed by Corporate Services Network Pty Ltd (CSN) who is the authorized claim agent of the insurer. Payment of a benefit will be made directly from CSN.</div>";
+  return h;
+}
+
+/* ---------- PDF生成 ---------- */
+function safeFilePart(s){ return String(s||"").trim().replace(/[\\/:*?"<>|]/g,"_").replace(/\s+/g,"_")||"NoName"; }
+function claimFilename(){ return "Claim_"+safeFilePart(profile.name)+"_"+dmyAu("-")+".pdf"; }
+
+function blobToArrayBuffer(blob){
+  if(blob.arrayBuffer) return blob.arrayBuffer();
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onload=function(){res(fr.result);};
+    fr.onerror=function(){rej(fr.error);};
+    fr.readAsArrayBuffer(blob);
+  });
+}
+async function renderClaimFormCanvas(rows,cm){
+  var tmp=document.createElement("div");
+  tmp.style.position="fixed"; tmp.style.left="-10000px"; tmp.style.top="0";
+  tmp.style.width="794px"; tmp.style.background="#fff";
+  tmp.innerHTML=buildClaimHTML(profile,rows,cm);
+  document.body.appendChild(tmp);
+  try{
+    var imgs=Array.from(tmp.querySelectorAll("img"));
+    await Promise.all(imgs.map(function(img){
+      if(img.complete) return Promise.resolve();
+      return new Promise(function(res){ img.addEventListener("load",res,{once:true}); img.addEventListener("error",res,{once:true}); });
+    }));
+    return await window.html2canvas(tmp,{scale:2,backgroundColor:"#ffffff",useCORS:true});
+  }finally{ document.body.removeChild(tmp); }
+}
+async function generateClaimPdf(){
+  if(!profileReady()){
+    toast("先に設定タブで基本情報を登録してください");
+    goTab("Settings");
+    return;
+  }
+  var cur=normCur(profile.currency);
+  var sel=unclaimed().filter(function(r){return selectedIds[r.id];})
+    .sort(function(a,b){return a.date<b.date?-1:1;});
+  if(!sel.length){ toast("レシートを選択してください"); return; }
+  if(sel.length>CLAIM_ROW_MAX){ toast("10件までにしてください"); return; }
+  var cm={currency:cur,departureDate:$("depDate").value};
+  if(cur==="JPY" && !cm.departureDate){
+    toast("JPY申請ではAU出国日が必須です");
+    $("depDate").focus();
+    return;
+  }
+  if(!window.PDFLib||!window.html2canvas){
+    alert("PDFライブラリを読み込めませんでした。通信環境を確認して再読み込みしてください。");
+    return;
+  }
+  showLoading("申請書PDFを作成中...");
+  try{
+    var pdfDoc=await PDFLib.PDFDocument.create();
+    var A4W=595.28, A4H=841.89, M=24;
+
+    // 1) 申請書ページ
+    var formCanvas=await renderClaimFormCanvas(sel,cm);
+    var formJpg=formCanvas.toDataURL("image/jpeg",0.95);
+    var formImg=await pdfDoc.embedJpg(formJpg);
+    var drawW=A4W-M*2;
+    var drawH=formCanvas.height*drawW/formCanvas.width;
+    if(drawH<=A4H-M*2){
+      var pg=pdfDoc.addPage([A4W,A4H]);
+      pg.drawImage(formImg,{x:M,y:A4H-M-drawH,width:drawW,height:drawH});
+    }else{
+      // 収まらない場合は1ページに縮小して収める
+      var scale=(A4H-M*2)/drawH;
+      var w2=drawW*scale, h2=A4H-M*2;
+      var pg2=pdfDoc.addPage([A4W,A4H]);
+      pg2.drawImage(formImg,{x:(A4W-w2)/2,y:M,width:w2,height:h2});
+    }
+
+    // 2) レシートを日付順に結合
+    for(var i=0;i<sel.length;i++){
+      var r=sel[i];
+      $("loadingText").textContent="領収書を結合中... ("+(i+1)+"/"+sel.length+")";
+      try{
+        if(r.fileType==="pdf"){
+          var srcBytes=await blobToArrayBuffer(r.blob);
+          var srcPdf=await PDFLib.PDFDocument.load(srcBytes,{ignoreEncryption:true});
+          var pages=await pdfDoc.copyPages(srcPdf,srcPdf.getPageIndices());
+          pages.forEach(function(p){ pdfDoc.addPage(p); });
+        }else{
+          var bytes=await blobToArrayBuffer(r.blob);
+          var img=await pdfDoc.embedJpg(bytes);
+          var page=pdfDoc.addPage([A4W,A4H]);
+          var maxW=A4W-M*2, maxH=A4H-M*2-24;
+          var s=Math.min(maxW/img.width,maxH/img.height);
+          var w=img.width*s, h=img.height*s;
+          page.drawImage(img,{x:(A4W-w)/2,y:A4H-M-24-h,width:w,height:h});
+          page.drawText((i+1)+". "+r.person+"  "+isoToAu(r.date)+"  "+catLabel(r.category)+"  "+curMark(cur)+fmtAmt(r.amount,cur),
+            {x:M,y:A4H-M-12,size:10,color:PDFLib.rgb(0.2,0.25,0.3)});
+        }
+      }catch(e){
+        console.error(e);
+        toast((i+1)+"件目の領収書を結合できませんでした(スキップ)");
+      }
+    }
+
+    var outBytes=await pdfDoc.save();
+    var pdfBlob=new Blob([outBytes],{type:"application/pdf"});
+    var fname=claimFilename();
+
+    // 3) 申請記録を保存し、レシートを申請済みに
+    var claimRec={
+      id:uid(),createdAt:new Date().toISOString(),
+      receiptIds:sel.map(function(r){return r.id;}),
+      totalText:fmtMoney(sel.reduce(function(s,r){return s+parseAmt(r.amount,cur);},0),cur),
+      filename:fname,pdfBlob:pdfBlob
+    };
+    await dbPut("claims",claimRec);
+    claims.push(claimRec);
+    var now=new Date().toISOString();
+    for(var j=0;j<sel.length;j++){
+      sel[j].claimedAt=now; sel[j].claimId=claimRec.id;
+      await dbPut("receipts",sel[j]);
+    }
+    selectedIds={};
+    hideLoading();
+    toast("PDFを作成しました ✅");
+    renderClaim(); updateBadges();
+    await sharePdf(pdfBlob,fname);
+  }catch(e){
+    console.error(e);
+    hideLoading();
+    alert("PDF作成に失敗しました: "+(e&&e.message?e.message:e));
+  }
+}
+async function sharePdf(blob,filename){
+  var file;
+  try{ file=new File([blob],filename,{type:"application/pdf"}); }catch(e){ file=null; }
+  if(file && navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file],title:filename,text:mailBody()});
+      return;
+    }catch(e){ /* キャンセル含む。フォールバックへ */ if(e && e.name==="AbortError") return; }
+  }
+  // フォールバック: ダウンロード
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},30000);
+  toast("PDFを保存しました(共有シート非対応の環境)");
+}
+
+/* ---------- 設定タブ ---------- */
+function fillSettingsForm(){
+  $("sName").value=profile.name||"";
+  $("sPolicyNo").value=profile.policyNo||POLICY_PREFIX;
+  $("sPhone").value=profile.phone||"";
+  $("sEmail").value=profile.email||"";
+  $("sEmployer").value=profile.employer||"";
+  $("sAddress").value=profile.address||"";
+  $("sBank").value=profile.bank||"";
+  $("sBranch").value=profile.branch||"";
+  $("sBSB").value=profile.bsb||"";
+  $("sAccNo").value=profile.accNo||"";
+  $("sAccName").value=profile.accName||"";
+  syncCurUi();
+  renderMembers();
+  if(profile.signature){
+    sigPad.dataUrl=profile.signature; sigPad.hasStroke=true;
+    setTimeout(function(){ drawSigFromData(profile.signature); },50);
+  }
+}
+function syncCurUi(){
+  document.querySelectorAll(".cur-opt").forEach(function(b){
+    var on=normCur(b.getAttribute("data-cur"))===normCur(profile.currency);
+    b.classList.toggle("on",on);
+    b.classList.toggle("jpy",on&&normCur(profile.currency)==="JPY");
+  });
+}
+function renderMembers(){
+  var box=$("memberChips");
+  box.innerHTML=members.map(function(m,i){
+    return '<span class="chip">'+esc(m)+'<button type="button" data-delmem="'+i+'">×</button></span>';
+  }).join("")||'<span style="font-size:12.5px;color:#97A6B9;font-weight:700">まだ登録がありません</span>';
+  box.querySelectorAll("[data-delmem]").forEach(function(b){
+    b.addEventListener("click",function(){
+      members.splice(Number(b.getAttribute("data-delmem")),1);
+      renderMembers();
+    });
+  });
+}
+function addMember(){
+  var input=$("newMember");
+  var name=upAscii(input.value).replace(/\s+/g," ").trim();
+  var msg=$("memMsg");
+  msg.textContent="";
+  if(!name){ msg.textContent="名前を入力してください"; return; }
+  if(members.some(function(m){return m.toLowerCase()===name.toLowerCase();})){
+    msg.textContent="「"+name+"」はすでに追加されています"; return;
+  }
+  if(members.length>=MEMBER_MAX){ msg.textContent="対象者は最大"+MEMBER_MAX+"名までです"; return; }
+  members.push(name);
+  input.value="";
+  renderMembers();
+}
+function markBad(fid,bad){ $(fid).classList.toggle("bad",!!bad); }
+function saveSettings(){
+  profile.name=upAscii($("sName").value).trim();
+  var suffix=upAscii($("sPolicyNo").value).replace(/\s+/g,"").replace(/^MEDIPACK0802\/?/i,"").replace(/[^A-Z0-9-]/g,"").slice(0,24);
+  profile.policyNo=POLICY_PREFIX+suffix;
+  $("sPolicyNo").value=profile.policyNo;
+  profile.phone=digOnly($("sPhone").value,15);
+  profile.email=String($("sEmail").value||"").trim();
+  profile.employer=upAscii($("sEmployer").value).trim();
+  profile.address=upAscii($("sAddress").value).trim();
+  profile.bank=upAscii($("sBank").value).trim();
+  profile.branch=upAscii($("sBranch").value).trim();
+  profile.bsb=digOnly($("sBSB").value,6);
+  profile.accNo=digOnly($("sAccNo").value,14);
+  profile.accName=upAscii($("sAccName").value).trim();
+
+  var bad=false;
+  markBad("fName",!profile.name); bad=bad||!profile.name;
+  markBad("fPol",!suffix); bad=bad||!suffix;
+  markBad("fPhone",!profile.phone); bad=bad||!profile.phone;
+  markBad("fEmail",!isEmail(profile.email)); bad=bad||!isEmail(profile.email);
+  markBad("fEmp",!profile.employer); bad=bad||!profile.employer;
+  markBad("fAddr",!profile.address); bad=bad||!profile.address;
+  markBad("fBank",!profile.bank); bad=bad||!profile.bank;
+  markBad("fBranch",!profile.branch); bad=bad||!profile.branch;
+  markBad("fBSB",!/^\d{6}$/.test(profile.bsb)); bad=bad||!/^\d{6}$/.test(profile.bsb);
+  markBad("fAcc",!profile.accNo); bad=bad||!profile.accNo;
+  markBad("fAccN",!profile.accName); bad=bad||!profile.accName;
+  if(!members.length){ $("memMsg").textContent="対象者を1名以上登録してください"; bad=true; }
+
+  // 契約者本人を対象者に自動追加(First name)
+  var first=profile.name.split(/[\s,]+/)[0]||"";
+  if(first && !members.some(function(m){return m.toLowerCase()===first.toLowerCase();}) && members.length<MEMBER_MAX){
+    members.push(first);
+    renderMembers();
+    if($("memMsg").textContent==="対象者を1名以上登録してください") $("memMsg").textContent="";
+    bad=members.length?bad&&!(members.length):bad;
+  }
+  if(members.length) $("memMsg").textContent="";
+  bad = bad && !(profile.name&&suffix&&profile.phone&&isEmail(profile.email)&&profile.employer&&profile.address&&profile.bank&&profile.branch&&/^\d{6}$/.test(profile.bsb)&&profile.accNo&&profile.accName&&members.length);
+
+  saveProfileToStore();
+  updateBadges();
+  if(profileReady()){
+    $("settingsSavedNote").textContent="✅ 保存しました。申請書に自動反映されます。";
+    setTimeout(function(){ $("settingsSavedNote").textContent=""; },3000);
+    toast("設定を保存しました");
+  }else{
+    $("settingsSavedNote").textContent="";
+    toast("保存しました(未入力の必須項目があります)");
+  }
+}
+
+/* ---------- 署名 ---------- */
+function initSig(){
+  sigPad.canvas=$("sigCanvas");
+  if(!sigPad.canvas) return;
+  resizeSig();
+  window.addEventListener("resize",resizeSig);
+  sigPad.canvas.addEventListener("pointerdown",function(ev){
+    ev.preventDefault();
+    sigPad.drawing=true;
+    var p=sigPos(ev);
+    sigPad.ctx.beginPath(); sigPad.ctx.moveTo(p.x,p.y);
+    $("sigHint").style.display="none";
+    try{ sigPad.canvas.setPointerCapture(ev.pointerId); }catch(e){}
+  });
+  sigPad.canvas.addEventListener("pointermove",function(ev){
+    if(!sigPad.drawing) return;
+    ev.preventDefault();
+    var p=sigPos(ev);
+    sigPad.ctx.lineTo(p.x,p.y); sigPad.ctx.stroke();
+    sigPad.hasStroke=true;
+  });
+  ["pointerup","pointercancel"].forEach(function(t){
+    sigPad.canvas.addEventListener(t,function(){
+      sigPad.drawing=false;
+      if(sigPad.hasStroke) sigPad.dataUrl=sigPad.canvas.toDataURL("image/png");
+    });
+  });
+}
+function sigPos(ev){
+  var r=sigPad.canvas.getBoundingClientRect();
+  return {x:ev.clientX-r.left,y:ev.clientY-r.top};
+}
+function resizeSig(){
+  if(!sigPad.canvas) return;
+  var ratio=window.devicePixelRatio||1;
+  var w=sigPad.canvas.clientWidth||300, h=sigPad.canvas.clientHeight||140;
+  if(!w||!h) return;
+  var prev=sigPad.dataUrl;
+  sigPad.canvas.width=Math.floor(w*ratio);
+  sigPad.canvas.height=Math.floor(h*ratio);
+  sigPad.ctx=sigPad.canvas.getContext("2d");
+  sigPad.ctx.scale(ratio,ratio);
+  sigPad.ctx.lineWidth=2.2; sigPad.ctx.lineCap="round";
+  sigPad.ctx.strokeStyle="#1A5276";
+  if(prev) drawSigFromData(prev);
+}
+function drawSigFromData(data){
+  if(!data||!sigPad.ctx) return;
+  var img=new Image();
+  img.onload=function(){
+    var w=sigPad.canvas.clientWidth,h=sigPad.canvas.clientHeight;
+    sigPad.ctx.clearRect(0,0,sigPad.canvas.width,sigPad.canvas.height);
+    sigPad.ctx.drawImage(img,0,0,w,h);
+    $("sigHint").style.display="none";
+    sigPad.hasStroke=true;
+  };
+  img.src=data;
+}
+function clearSig(){
+  if(!sigPad.ctx) return;
+  sigPad.ctx.clearRect(0,0,sigPad.canvas.width,sigPad.canvas.height);
+  sigPad.dataUrl=""; sigPad.hasStroke=false;
+  $("sigHint").style.display="flex";
+}
+
+/* ---------- バインド ---------- */
+function bind(){
+  $("tabBtnHome").addEventListener("click",function(){goTab("Home");});
+  $("tabBtnClaim").addEventListener("click",function(){goTab("Claim");});
+  $("tabBtnSettings").addEventListener("click",function(){goTab("Settings");});
+
+  $("btnCam").addEventListener("click",function(){ $("fileCam").click(); });
+  $("btnLib").addEventListener("click",function(){ $("fileLib").click(); });
+  $("fileCam").addEventListener("change",function(){ handleFiles(this.files); this.value=""; });
+  $("fileLib").addEventListener("change",function(){ handleFiles(this.files); this.value=""; });
+
+  $("sheetClose").addEventListener("click",function(){
+    if(sheetState&&sheetState.mode==="new"){
+      if(!confirm("この記録を破棄しますか?")) return;
+    }
+    closeSheet();
+  });
+  $("btnSaveReceipt").addEventListener("click",saveReceiptFromSheet);
+  $("btnDeleteReceipt").addEventListener("click",deleteReceipt);
+  $("btnViewImage").addEventListener("click",async function(){
+    if(!sheetState||sheetState.fileType==="pdf") return;
+    var url=URL.createObjectURL(sheetState.blob);
+    $("viewerImg").src=url;
+    $("viewer").hidden=false;
+  });
+  $("viewerClose").addEventListener("click",function(){
+    $("viewer").hidden=true;
+    var src=$("viewerImg").src;
+    $("viewerImg").src="";
+    if(src&&src.indexOf("blob:")===0) URL.revokeObjectURL(src);
+  });
+  document.querySelectorAll("#pickCat .pick").forEach(function(b){
+    b.addEventListener("click",function(){
+      if(!sheetState) return;
+      sheetState.cat=b.getAttribute("data-cat");
+      syncCatUi();
+      $("fRcCat").classList.remove("bad");
+    });
+  });
+  $("rcAmt").addEventListener("input",function(){ $("fRcAmt").classList.remove("bad"); });
+  $("rcDate").addEventListener("input",function(){ $("fRcDate").classList.remove("bad"); });
+  $("rcCond").addEventListener("input",function(){ $("fRcCond").classList.remove("bad"); });
+
+  $("btnMakePdf").addEventListener("click",generateClaimPdf);
+  document.querySelectorAll("[data-copy]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var t=b.getAttribute("data-copy");
+      copyText(t==="to"?FIXED_INSURER_EMAIL:t==="subj"?mailSubject():mailBody());
+    });
+  });
+
+  $("btnSaveSettings").addEventListener("click",saveSettings);
+  $("btnAddMember").addEventListener("click",addMember);
+  $("newMember").addEventListener("keydown",function(e){
+    if(e.key==="Enter"){ e.preventDefault(); addMember(); }
+  });
+  document.querySelectorAll(".cur-opt").forEach(function(b){
+    b.addEventListener("click",function(){
+      profile.currency=normCur(b.getAttribute("data-cur"));
+      syncCurUi(); updateBadges();
+    });
+  });
+  $("btnSigClear").addEventListener("click",clearSig);
+  ["sName","sEmployer","sBank","sBranch","sAccName","sAddress","sPolicyNo","newMember"].forEach(function(id){
+    $(id).addEventListener("blur",function(){ this.value=upAscii(this.value); });
+  });
+  ["sPhone","sBSB","sAccNo"].forEach(function(id){
+    $(id).addEventListener("input",function(){ this.value=digOnly(this.value,Number(this.maxLength)||undefined); });
+  });
+}
+
+/* ---------- 起動 ---------- */
+async function init(){
+  bind();
+  initSig();
+  fillSettingsForm();
+  try{
+    receipts=await dbAll("receipts");
+    claims=await dbAll("claims");
+  }catch(e){
+    console.error(e);
+    toast("データの読み込みに失敗しました");
+  }
+  updateBadges();
+  renderHome();
+  if(!profileReady() && !receipts.length){
+    goTab("Settings");
+    toast("まず基本情報を登録してください");
+  }
+  // 保存容量の永続化を要求(iOSでのデータ消去防止)
+  if(navigator.storage && navigator.storage.persist){
+    try{ navigator.storage.persist(); }catch(e){}
+  }
+}
+init();
+})();
+</script>
+</body>
+</html>
