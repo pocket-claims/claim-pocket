@@ -255,6 +255,50 @@ input,select,textarea{font:inherit;font-size:16px}
   display:flex;flex-direction:column}
 .viewer-top{display:flex;justify-content:flex-end;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px}
 .viewer img{flex:1;object-fit:contain;min-height:0;width:100%}
+
+/* ===== フローステッパー ===== */
+.flow-steps{display:flex;align-items:center;gap:4px;margin:2px 2px 14px}
+.flow-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-size:10.5px;font-weight:800;color:#7A8FA3;text-align:center}
+.flow-step .num{width:26px;height:26px;border-radius:50%;background:#D8E5F0;color:#5E7891;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900}
+.flow-step.on{color:var(--primary)}
+.flow-step.on .num{background:var(--primary-deep);color:#fff}
+.flow-arrow{color:#AFC8DD;font-weight:900;font-size:14px;margin-bottom:14px}
+
+/* ===== ガイドカード ===== */
+.guide-card{background:linear-gradient(135deg,#E8F4FD,#F2FAFF);border:1.5px solid #A8CDE8;
+  border-radius:var(--r);padding:14px 16px;margin-bottom:14px}
+.guide-card .g-t{font-size:14.5px;font-weight:900;color:var(--primary);margin-bottom:6px}
+.guide-card .g-b{font-size:12.5px;font-weight:700;color:#3C5065;line-height:1.65}
+.guide-card .btn{margin-top:10px}
+
+/* ===== 送信待ちドラフト ===== */
+.draft-card{background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--r);
+  padding:14px 16px;margin-bottom:14px}
+.draft-card .d-t{font-size:14.5px;font-weight:900;color:#92400E;margin-bottom:4px}
+.draft-card .d-s{font-size:12px;font-weight:700;color:#B45309;margin-bottom:10px}
+
+/* ===== 送信ガイドシート ===== */
+.send-step{display:flex;gap:12px;background:#fff;border:1px solid var(--line);
+  border-radius:var(--r-s);padding:14px;margin-bottom:10px;align-items:flex-start}
+.send-step .num{flex:0 0 30px;width:30px;height:30px;border-radius:50%;
+  background:var(--primary-deep);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:900}
+.send-step .s-body{flex:1;min-width:0}
+.send-step .s-t{font-size:14.5px;font-weight:900;margin-bottom:4px}
+.send-step .s-d{font-size:12px;font-weight:700;color:var(--muted);line-height:1.6;margin-bottom:8px}
+.size-badge{display:inline-block;font-size:12px;font-weight:900;border-radius:999px;padding:3px 10px;margin-left:6px}
+.size-badge.ok{background:var(--ok-soft);color:var(--ok)}
+.size-badge.big{background:var(--warn-soft);color:var(--warn)}
+
+/* ===== ヘルプリスト ===== */
+.help-list{margin:0;padding-left:0;list-style:none}
+.help-list li{display:flex;gap:10px;margin-bottom:12px;font-size:13px;font-weight:700;line-height:1.6;color:#3C5065}
+.help-list .hnum{flex:0 0 24px;width:24px;height:24px;border-radius:50%;background:var(--primary-soft);
+  color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;margin-top:2px}
+.link-btn{border:none;background:none;color:var(--primary-deep);font-size:13px;font-weight:800;
+  text-decoration:underline;padding:6px 2px;display:block;margin:0 auto 14px}
 </style>
 </head>
 <body>
@@ -281,6 +325,9 @@ input,select,textarea{font:inherit;font-size:16px}
         <span class="sub">メールで届いた領収書など</span>
       </button>
     </div>
+    <button class="link-btn" id="btnImportHelp" type="button">📩 メールで届いたPDF領収書の入れ方</button>
+
+    <div id="homeGuide"></div>
 
     <div class="sum-bar">
       <div class="sum-item"><div class="k">未申請</div><div class="v" id="sumCount">0<small>件</small></div></div>
@@ -297,8 +344,16 @@ input,select,textarea{font:inherit;font-size:16px}
     </div>
 
     <div id="claimBody">
+      <div class="flow-steps" id="flowSteps">
+        <div class="flow-step" data-fs="1"><span class="num">1</span>レシートを選ぶ</div>
+        <span class="flow-arrow">›</span>
+        <div class="flow-step" data-fs="2"><span class="num">2</span>PDFを作成</div>
+        <span class="flow-arrow">›</span>
+        <div class="flow-step" data-fs="3"><span class="num">3</span>メールで送る</div>
+      </div>
+      <div id="draftArea"></div>
       <p style="font-size:13px;color:var(--muted);font-weight:700;line-height:1.6;margin:2px 2px 12px">
-        申請するレシートを選んで、申請書PDFを作成します。<br>申請書1枚につき<b>最大10件</b>までです。
+        申請するレシートをタップして選び(1回の申請書につき最大10件)、下の青いボタンでPDFを作成します。
       </p>
       <div class="month-quick" id="monthQuick"></div>
       <div id="claimList"></div>
@@ -314,16 +369,6 @@ input,select,textarea{font:inherit;font-size:16px}
           <span class="tot" id="selTotal">-</span>
         </div>
         <button class="btn" id="btnMakePdf" type="button">📑 申請書PDFを作成(領収書つき)</button>
-      </div>
-
-      <div class="card" style="margin-top:18px">
-        <div class="card-title"><span class="ico">✉️</span>メール送付のヒント</div>
-        <p style="font-size:12.5px;color:var(--muted);font-weight:700;line-height:1.6;margin-bottom:10px">
-          PDF作成後の共有シートで「メール」を選ぶと添付済みの新規メールが開きます。宛先と件名は下からコピーして貼り付けてください。
-        </p>
-        <div class="copy-row"><span class="k">宛先</span><span class="v" id="mailToText">jp@csnet.com.au</span><button type="button" data-copy="to">コピー</button></div>
-        <div class="copy-row"><span class="k">件名</span><span class="v" id="mailSubjText">-</span><button type="button" data-copy="subj">コピー</button></div>
-        <div class="copy-row"><span class="k">本文</span><span class="v">Dear Claims Team, ...(定型文)</span><button type="button" data-copy="body">コピー</button></div>
       </div>
 
       <div class="card" id="histCard" hidden>
@@ -461,6 +506,66 @@ input,select,textarea{font:inherit;font-size:16px}
 <div class="viewer" id="viewer" hidden>
   <div class="viewer-top"><button class="sheet-x" id="viewerClose" type="button" style="background:rgba(255,255,255,.2);color:#fff">✕</button></div>
   <img id="viewerImg" alt="レシート拡大"/>
+</div>
+
+<!-- ============ 送信ガイドシート ============ -->
+<div class="sheet-wrap" id="sendSheetWrap" hidden>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">あとはメールで送るだけ</div>
+      <button class="sheet-x" id="sendSheetClose" type="button">✕</button>
+    </div>
+    <div class="guide-card">
+      <div class="g-t">✅ 申請書PDFができました</div>
+      <div class="g-b" id="sendPdfInfo">-</div>
+      <button class="btn sm soft" id="btnPreviewPdf" type="button" style="margin-top:10px">📄 中身を確認する</button>
+    </div>
+    <div class="send-step">
+      <span class="num">1</span>
+      <div class="s-body">
+        <div class="s-t">メールで送る</div>
+        <div class="s-d">下のボタン→共有メニューで「<b>メール</b>」を選ぶと、PDFが添付された新規メールが開きます。</div>
+        <button class="btn" id="btnSendMail" type="button">✉️ メールで送る</button>
+      </div>
+    </div>
+    <div class="send-step">
+      <span class="num">2</span>
+      <div class="s-body">
+        <div class="s-t">宛先を貼り付けて送信</div>
+        <div class="s-d">宛先 <b>jp@csnet.com.au</b> は<b>コピー済み</b>です。メールの宛先欄を<b>長押し→ペースト</b>して送信してください。件名と本文は自動で入ります。</div>
+      </div>
+    </div>
+    <div class="send-step">
+      <span class="num">3</span>
+      <div class="s-body">
+        <div class="s-t">送信できたら完了にする</div>
+        <div class="s-d">レシートが「申請済み」になり、次回の申請に混ざらなくなります。</div>
+        <button class="btn" id="btnMarkSent" type="button" style="background:var(--ok);box-shadow:0 8px 18px rgba(22,163,74,.24)">✅ 送信できた!完了にする</button>
+        <button class="btn soft" id="btnSendLater" type="button" style="margin-top:8px">あとで送る(申請タブに保存)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PDF取り込みヘルプ ============ -->
+<div class="sheet-wrap" id="helpSheetWrap" hidden>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">📩 メールのPDF領収書の入れ方</div>
+      <button class="sheet-x" id="helpSheetClose" type="button">✕</button>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ico">✉️</span>メール(標準)・Gmailアプリ共通</div>
+      <ul class="help-list">
+        <li><span class="hnum">1</span><span>メールの添付PDFをタップして開き、<b>共有ボタン(□↑)</b> →<b>「"ファイル"に保存」</b>(保存先はそのままでOK)</span></li>
+        <li><span class="hnum">2</span><span>このアプリに戻って<b>「写真/PDFを取り込む」→「ファイルを選択」</b></span></li>
+        <li><span class="hnum">3</span><span>いま保存したPDFが<b>「最近使った項目」の一番上</b>に出るのでタップ</span></li>
+      </ul>
+      <p style="font-size:12px;color:var(--muted);font-weight:700;line-height:1.6">※ iPhoneの仕様で、ホーム画面のWebアプリはメールから直接ファイルを受け取れないため、この3ステップ(約20秒)が最短ルートです。紙のレシートは📷で撮るほうが早いです。</p>
+    </div>
+  </div>
 </div>
 
 <div class="loading" id="loading" hidden>
@@ -642,6 +747,16 @@ function goTab(name){
 
 /* ---------- ヘッダー/バッジ ---------- */
 function unclaimed(){ return receipts.filter(function(r){return !r.claimedAt;}); }
+function draftClaims(){ return claims.filter(function(c){return c.status==="draft";}); }
+function idsInDrafts(){
+  var s={};
+  draftClaims().forEach(function(c){ (c.receiptIds||[]).forEach(function(id){ s[id]=true; }); });
+  return s;
+}
+function selectableReceipts(){
+  var inDraft=idsInDrafts();
+  return unclaimed().filter(function(r){ return !inDraft[r.id]; });
+}
 function updateBadges(){
   var list=unclaimed();
   var total=list.reduce(function(s,r){return s+parseAmt(r.amount,profile.currency);},0);
@@ -681,8 +796,33 @@ function receiptItemHtml(r,forClaim){
     '</span>'+
     '<span class="rc-right"><span class="rc-amt">'+esc(fmtMoney(r.amount,cur))+'</span><br>'+(forClaim?"":st)+'</span>';
 }
+function renderHomeGuide(){
+  var g=$("homeGuide");
+  if(!profileReady()){
+    g.innerHTML='<div class="guide-card"><div class="g-t">STEP 1/3 まずは初期設定</div>'+
+      '<div class="g-b">申請書に使う契約者情報・口座・対象者を登録します(最初の1回だけ)。</div>'+
+      '<button class="btn sm" id="gGoSettings" type="button">⚙️ 設定をひらく</button></div>';
+    var b=$("gGoSettings"); if(b) b.addEventListener("click",function(){goTab("Settings");});
+  }else if(!receipts.length){
+    g.innerHTML='<div class="guide-card"><div class="g-t">STEP 2/3 レシートを撮ってみましょう</div>'+
+      '<div class="g-b">病院・薬局の会計後にその場で上の📷ボタン。「誰・区分・金額」を選ぶだけで記録完了。あとは忘れてOKです。</div></div>';
+  }else if(draftClaims().length){
+    g.innerHTML='<div class="guide-card"><div class="g-t">📨 送信待ちの申請書があります</div>'+
+      '<div class="g-b">「申請」タブの黄色いカードから送信を再開できます。</div>'+
+      '<button class="btn sm" id="gGoClaim" type="button">✉️ 申請タブへ</button></div>';
+    var b3=$("gGoClaim"); if(b3) b3.addEventListener("click",function(){goTab("Claim");});
+  }else if(unclaimed().length){
+    g.innerHTML='<div class="guide-card"><div class="g-t">STEP 3/3 たまったら申請へ</div>'+
+      '<div class="g-b">月末などに「申請」タブでまとめてPDF化→メール送信します(未申請 '+unclaimed().length+'件)。</div>'+
+      '<button class="btn sm" id="gGoClaim" type="button">✉️ 申請タブへ</button></div>';
+    var b2=$("gGoClaim"); if(b2) b2.addEventListener("click",function(){goTab("Claim");});
+  }else{
+    g.innerHTML="";
+  }
+}
 function renderHome(){
   updateBadges();
+  renderHomeGuide();
   var wrap=$("homeList");
   if(!receipts.length){
     wrap.innerHTML='<div class="list-empty">まだレシートがありません。<br>会計が終わったらその場で📷ボタン。<br>それだけで申請準備は完了です。</div>';
@@ -870,11 +1010,33 @@ async function handleFiles(files){
 function renderClaim(){
   var ready=profileReady();
   $("claimProfileWarn").hidden=ready;
-  var list=unclaimed().slice().sort(function(a,b){return a.date<b.date?-1:1;});
+  var list=selectableReceipts().slice().sort(function(a,b){return a.date<b.date?-1:1;});
   var cur=profile.currency;
+  var drafts=draftClaims().slice().sort(function(a,b){return a.createdAt<b.createdAt?1:-1;});
 
   $("depBlock").hidden=normCur(cur)!=="JPY";
-  $("mailSubjText").textContent=mailSubject();
+
+  // 送信待ちドラフト
+  $("draftArea").innerHTML=drafts.map(function(c){
+    var d=new Date(c.createdAt);
+    return '<div class="draft-card"><div class="d-t">📨 送信待ちの申請書があります</div>'+
+      '<div class="d-s">'+pad2(d.getMonth()+1)+"/"+pad2(d.getDate())+' 作成 ・ '+c.receiptIds.length+'件 ・ '+esc(c.totalText||"")+'</div>'+
+      '<button class="btn" type="button" data-resume="'+esc(c.id)+'">▶ 送信をつづける</button>'+
+      '<button class="btn warn sm" type="button" data-discard="'+esc(c.id)+'" style="margin-top:8px;width:100%">破棄する(レシートは未申請に戻ります)</button></div>';
+  }).join("");
+  $("draftArea").querySelectorAll("[data-resume]").forEach(function(b){
+    b.addEventListener("click",function(){ openSendSheet(b.getAttribute("data-resume")); });
+  });
+  $("draftArea").querySelectorAll("[data-discard]").forEach(function(b){
+    b.addEventListener("click",function(){ discardDraft(b.getAttribute("data-discard")); });
+  });
+
+  // ステッパーの現在地
+  var selCountNow=Object.keys(selectedIds).filter(function(id){return selectedIds[id];}).length;
+  var stage=drafts.length?3:(selCountNow?2:1);
+  document.querySelectorAll("#flowSteps .flow-step").forEach(function(el){
+    el.classList.toggle("on",Number(el.getAttribute("data-fs"))<=stage);
+  });
 
   // 月チップ
   var months={};
@@ -899,10 +1061,12 @@ function renderClaim(){
   // リスト
   var wrap=$("claimList");
   if(!list.length){
-    wrap.innerHTML='<div class="list-empty">未申請のレシートはありません 🎉<br>「記録」タブで撮影するとここに並びます。</div>';
+    wrap.innerHTML='<div class="list-empty">'+(drafts.length
+      ?'選択できるレシートはありません。<br>上の黄色いカードから送信をつづけてください。'
+      :'未申請のレシートはありません 🎉<br>「記録」タブで撮影するとここに並びます。')+'</div>';
     $("claimFoot").hidden=true;
   }else{
-    var selCount=Object.keys(selectedIds).filter(function(id){return selectedIds[id];}).length;
+    var selCount=selCountNow;
     var html="";
     groupByMonth(list).forEach(function(g){
       html+='<div class="month-head"><span>'+esc(monthLabel(g.key))+'</span></div>';
@@ -934,9 +1098,10 @@ function renderClaim(){
 }
 function renderHistory(){
   var card=$("histCard");
-  if(!claims.length){ card.hidden=true; return; }
+  var done=claims.filter(function(c){return c.status!=="draft";});
+  if(!done.length){ card.hidden=true; return; }
   card.hidden=false;
-  var sorted=claims.slice().sort(function(a,b){return a.createdAt<b.createdAt?1:-1;});
+  var sorted=done.slice().sort(function(a,b){return a.createdAt<b.createdAt?1:-1;});
   $("histList").innerHTML=sorted.map(function(c){
     var d=new Date(c.createdAt);
     return '<div class="hist-item"><div class="hist-body">'+
@@ -1131,6 +1296,66 @@ async function renderClaimFormCanvas(rows,cm){
     return await window.html2canvas(tmp,{scale:2,backgroundColor:"#ffffff",useCORS:true});
   }finally{ document.body.removeChild(tmp); }
 }
+async function recompressForPdf(blob,maxDim,quality){
+  var url=URL.createObjectURL(blob);
+  try{
+    var img=await loadImage(url);
+    var cv=drawScaled(img,maxDim);
+    var out=await canvasToBlob(cv,quality);
+    return await blobToArrayBuffer(out);
+  }finally{ URL.revokeObjectURL(url); }
+}
+async function assembleClaimPdf(sel,cm,imgMax,imgQ){
+  var pdfDoc=await PDFLib.PDFDocument.create();
+  var A4W=595.28, A4H=841.89, M=24;
+  var cur=normCur(cm.currency);
+
+  // 1) 申請書ページ
+  var formCanvas=await renderClaimFormCanvas(sel,cm);
+  var formImg=await pdfDoc.embedJpg(formCanvas.toDataURL("image/jpeg",0.92));
+  var drawW=A4W-M*2;
+  var drawH=formCanvas.height*drawW/formCanvas.width;
+  if(drawH<=A4H-M*2){
+    var pg=pdfDoc.addPage([A4W,A4H]);
+    pg.drawImage(formImg,{x:M,y:A4H-M-drawH,width:drawW,height:drawH});
+  }else{
+    var scale=(A4H-M*2)/drawH;
+    var pg2=pdfDoc.addPage([A4W,A4H]);
+    pg2.drawImage(formImg,{x:(A4W-drawW*scale)/2,y:M,width:drawW*scale,height:A4H-M*2});
+  }
+
+  // 2) レシートを日付順に結合(画像はメール添付向けに自動圧縮)
+  for(var i=0;i<sel.length;i++){
+    var r=sel[i];
+    $("loadingText").textContent="領収書を結合中... ("+(i+1)+"/"+sel.length+")";
+    try{
+      if(r.fileType==="pdf"){
+        var srcBytes=await blobToArrayBuffer(r.blob);
+        var srcPdf=await PDFLib.PDFDocument.load(srcBytes,{ignoreEncryption:true});
+        var pages=await pdfDoc.copyPages(srcPdf,srcPdf.getPageIndices());
+        pages.forEach(function(p){ pdfDoc.addPage(p); });
+      }else{
+        var bytes=await recompressForPdf(r.blob,imgMax,imgQ);
+        var img=await pdfDoc.embedJpg(bytes);
+        var page=pdfDoc.addPage([A4W,A4H]);
+        var maxW=A4W-M*2, maxH=A4H-M*2-24;
+        var s=Math.min(maxW/img.width,maxH/img.height);
+        var w=img.width*s, h=img.height*s;
+        page.drawImage(img,{x:(A4W-w)/2,y:A4H-M-24-h,width:w,height:h});
+        try{
+          // PDF標準フォントは英数字のみ対応のため、キャプションはASCIIに限定する
+          var caption=((i+1)+". "+r.person+"  "+isoToAu(r.date)+"  ["+r.category+"]  "+cur+" "+fmtAmt(r.amount,cur))
+            .replace(/[^\x20-\x7E]/g,"");
+          page.drawText(caption,{x:M,y:A4H-M-12,size:10,color:PDFLib.rgb(0.2,0.25,0.3)});
+        }catch(e2){ console.error(e2); }
+      }
+    }catch(e){
+      console.error(e);
+      toast((i+1)+"件目の領収書を結合できませんでした(スキップ)");
+    }
+  }
+  return await pdfDoc.save();
+}
 async function generateClaimPdf(){
   if(!profileReady()){
     toast("先に設定タブで基本情報を登録してください");
@@ -1138,7 +1363,7 @@ async function generateClaimPdf(){
     return;
   }
   var cur=normCur(profile.currency);
-  var sel=unclaimed().filter(function(r){return selectedIds[r.id];})
+  var sel=selectableReceipts().filter(function(r){return selectedIds[r.id];})
     .sort(function(a,b){return a.date<b.date?-1:1;});
   if(!sel.length){ toast("レシートを選択してください"); return; }
   if(sel.length>CLAIM_ROW_MAX){ toast("10件までにしてください"); return; }
@@ -1154,81 +1379,76 @@ async function generateClaimPdf(){
   }
   showLoading("申請書PDFを作成中...");
   try{
-    var pdfDoc=await PDFLib.PDFDocument.create();
-    var A4W=595.28, A4H=841.89, M=24;
-
-    // 1) 申請書ページ
-    var formCanvas=await renderClaimFormCanvas(sel,cm);
-    var formJpg=formCanvas.toDataURL("image/jpeg",0.95);
-    var formImg=await pdfDoc.embedJpg(formJpg);
-    var drawW=A4W-M*2;
-    var drawH=formCanvas.height*drawW/formCanvas.width;
-    if(drawH<=A4H-M*2){
-      var pg=pdfDoc.addPage([A4W,A4H]);
-      pg.drawImage(formImg,{x:M,y:A4H-M-drawH,width:drawW,height:drawH});
-    }else{
-      // 収まらない場合は1ページに縮小して収める
-      var scale=(A4H-M*2)/drawH;
-      var w2=drawW*scale, h2=A4H-M*2;
-      var pg2=pdfDoc.addPage([A4W,A4H]);
-      pg2.drawImage(formImg,{x:(A4W-w2)/2,y:M,width:w2,height:h2});
+    var outBytes=await assembleClaimPdf(sel,cm,1200,0.72);
+    if(outBytes.length>9.5*1024*1024){
+      $("loadingText").textContent="サイズが大きいため再圧縮中...";
+      outBytes=await assembleClaimPdf(sel,cm,900,0.55);
     }
-
-    // 2) レシートを日付順に結合
-    for(var i=0;i<sel.length;i++){
-      var r=sel[i];
-      $("loadingText").textContent="領収書を結合中... ("+(i+1)+"/"+sel.length+")";
-      try{
-        if(r.fileType==="pdf"){
-          var srcBytes=await blobToArrayBuffer(r.blob);
-          var srcPdf=await PDFLib.PDFDocument.load(srcBytes,{ignoreEncryption:true});
-          var pages=await pdfDoc.copyPages(srcPdf,srcPdf.getPageIndices());
-          pages.forEach(function(p){ pdfDoc.addPage(p); });
-        }else{
-          var bytes=await blobToArrayBuffer(r.blob);
-          var img=await pdfDoc.embedJpg(bytes);
-          var page=pdfDoc.addPage([A4W,A4H]);
-          var maxW=A4W-M*2, maxH=A4H-M*2-24;
-          var s=Math.min(maxW/img.width,maxH/img.height);
-          var w=img.width*s, h=img.height*s;
-          page.drawImage(img,{x:(A4W-w)/2,y:A4H-M-24-h,width:w,height:h});
-          page.drawText((i+1)+". "+r.person+"  "+isoToAu(r.date)+"  "+catLabel(r.category)+"  "+curMark(cur)+fmtAmt(r.amount,cur),
-            {x:M,y:A4H-M-12,size:10,color:PDFLib.rgb(0.2,0.25,0.3)});
-        }
-      }catch(e){
-        console.error(e);
-        toast((i+1)+"件目の領収書を結合できませんでした(スキップ)");
-      }
-    }
-
-    var outBytes=await pdfDoc.save();
     var pdfBlob=new Blob([outBytes],{type:"application/pdf"});
     var fname=claimFilename();
 
-    // 3) 申請記録を保存し、レシートを申請済みに
+    // 「送信待ち」として保存。レシートは送信確認後に申請済みへ
     var claimRec={
-      id:uid(),createdAt:new Date().toISOString(),
+      id:uid(),createdAt:new Date().toISOString(),status:"draft",
       receiptIds:sel.map(function(r){return r.id;}),
       totalText:fmtMoney(sel.reduce(function(s,r){return s+parseAmt(r.amount,cur);},0),cur),
       filename:fname,pdfBlob:pdfBlob
     };
     await dbPut("claims",claimRec);
     claims.push(claimRec);
-    var now=new Date().toISOString();
-    for(var j=0;j<sel.length;j++){
-      sel[j].claimedAt=now; sel[j].claimId=claimRec.id;
-      await dbPut("receipts",sel[j]);
-    }
     selectedIds={};
     hideLoading();
-    toast("PDFを作成しました ✅");
     renderClaim(); updateBadges();
-    await sharePdf(pdfBlob,fname);
+    openSendSheet(claimRec.id);
   }catch(e){
     console.error(e);
     hideLoading();
     alert("PDF作成に失敗しました: "+(e&&e.message?e.message:e));
   }
+}
+/* ---------- 送信ガイド ---------- */
+var currentSendClaimId=null;
+function openSendSheet(id){
+  var c=claims.find(function(x){return x.id===id;});
+  if(!c) return;
+  currentSendClaimId=id;
+  var mb=c.pdfBlob?c.pdfBlob.size/1048576:0;
+  var badge=mb<=10
+    ?'<span class="size-badge ok">メール添付OK</span>'
+    :'<span class="size-badge big">大きめ・2回に分けるのがおすすめ</span>';
+  $("sendPdfInfo").innerHTML=esc(c.filename)+"<br>"+c.receiptIds.length+"件 ・ "+esc(c.totalText||"")+" ・ "+(mb?mb.toFixed(1):"?")+" MB"+badge;
+  $("sendSheetWrap").hidden=false;
+  document.body.style.overflow="hidden";
+}
+function closeSendSheet(){
+  $("sendSheetWrap").hidden=true;
+  document.body.style.overflow="";
+}
+async function markClaimSent(id){
+  var c=claims.find(function(x){return x.id===id;});
+  if(!c) return;
+  var now=new Date().toISOString();
+  for(var i=0;i<receipts.length;i++){
+    if(c.receiptIds.indexOf(receipts[i].id)>=0){
+      receipts[i].claimedAt=now; receipts[i].claimId=c.id;
+      await dbPut("receipts",receipts[i]);
+    }
+  }
+  c.status="done"; c.sentAt=now;
+  await dbPut("claims",c);
+  closeSendSheet();
+  toast("申請完了!おつかれさまでした 🎉");
+  renderClaim(); updateBadges();
+}
+async function discardDraft(id){
+  var c=claims.find(function(x){return x.id===id;});
+  if(!c) return;
+  if(!confirm("この申請書PDFを破棄しますか?\nレシートは未申請のまま残ります。")) return;
+  await dbDel("claims",id);
+  claims=claims.filter(function(x){return x.id!==id;});
+  closeSendSheet();
+  toast("破棄しました");
+  renderClaim(); updateBadges();
 }
 async function sharePdf(blob,filename){
   var file;
@@ -1345,9 +1565,10 @@ function saveSettings(){
   saveProfileToStore();
   updateBadges();
   if(profileReady()){
-    $("settingsSavedNote").textContent="✅ 保存しました。申請書に自動反映されます。";
+    $("settingsSavedNote").textContent="✅ 保存しました。";
     setTimeout(function(){ $("settingsSavedNote").textContent=""; },3000);
-    toast("設定を保存しました");
+    toast("設定完了!次は会計後にレシートを撮るだけ 📷");
+    setTimeout(function(){ goTab("Home"); },700);
   }else{
     $("settingsSavedNote").textContent="";
     toast("保存しました(未入力の必須項目があります)");
@@ -1463,11 +1684,43 @@ function bind(){
   $("rcCond").addEventListener("input",function(){ $("fRcCond").classList.remove("bad"); });
 
   $("btnMakePdf").addEventListener("click",generateClaimPdf);
-  document.querySelectorAll("[data-copy]").forEach(function(b){
-    b.addEventListener("click",function(){
-      var t=b.getAttribute("data-copy");
-      copyText(t==="to"?FIXED_INSURER_EMAIL:t==="subj"?mailSubject():mailBody());
-    });
+
+  // 送信ガイドシート
+  $("sendSheetClose").addEventListener("click",function(){
+    closeSendSheet();
+    toast("「申請」タブの黄色いカードからいつでも再開できます");
+  });
+  $("btnSendLater").addEventListener("click",function(){
+    closeSendSheet();
+    toast("「申請」タブの黄色いカードからいつでも再開できます");
+  });
+  $("btnSendMail").addEventListener("click",async function(){
+    var c=claims.find(function(x){return x.id===currentSendClaimId;});
+    if(!c||!c.pdfBlob){ toast("PDFが見つかりません"); return; }
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(FIXED_INSURER_EMAIL);
+    }catch(e){}
+    await sharePdf(c.pdfBlob,c.filename);
+  });
+  $("btnPreviewPdf").addEventListener("click",function(){
+    var c=claims.find(function(x){return x.id===currentSendClaimId;});
+    if(!c||!c.pdfBlob){ toast("PDFが見つかりません"); return; }
+    var url=URL.createObjectURL(c.pdfBlob);
+    window.open(url,"_blank");
+    setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  });
+  $("btnMarkSent").addEventListener("click",function(){
+    if(currentSendClaimId) markClaimSent(currentSendClaimId);
+  });
+
+  // PDF取り込みヘルプ
+  $("btnImportHelp").addEventListener("click",function(){
+    $("helpSheetWrap").hidden=false;
+    document.body.style.overflow="hidden";
+  });
+  $("helpSheetClose").addEventListener("click",function(){
+    $("helpSheetWrap").hidden=true;
+    document.body.style.overflow="";
   });
 
   $("btnSaveSettings").addEventListener("click",saveSettings);
