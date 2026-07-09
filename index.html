@@ -46,7 +46,7 @@ input,select,textarea{font:inherit;font-size:16px}
   display:grid;grid-template-columns:repeat(3,1fr);
   padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px)}
 .tabbar button{background:none;border:none;display:flex;flex-direction:column;align-items:center;
-  gap:2px;padding:6px 4px;border-radius:12px;color:#7A8FA3;font-size:10.5px;font-weight:800}
+  gap:2px;padding:6px 4px;border-radius:12px;color:#7A8FA3;font-size:11.5px;font-weight:800}
 .tabbar button .ico{font-size:22px;line-height:1.15}
 .tabbar button.on{color:var(--primary)}
 .tabbar button.on .ico{transform:scale(1.08)}
@@ -65,24 +65,23 @@ input,select,textarea{font:inherit;font-size:16px}
 .card-title .req{font-size:11px;font-weight:800;color:var(--danger);margin-left:auto}
 
 /* ===== 撮影ボタン ===== */
-.cap-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.cap-btn{border:none;border-radius:18px;padding:18px 10px;display:flex;flex-direction:column;
-  align-items:center;gap:6px;font-weight:900;font-size:14px;color:#fff;
+.cap-hero{width:100%;border:none;border-radius:22px;padding:22px 16px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;
   background:linear-gradient(135deg,#1A5276,#2E86C1);
-  box-shadow:0 8px 20px rgba(26,82,118,.28)}
-.cap-btn:active{transform:scale(.97)}
-.cap-btn .ico{font-size:32px;line-height:1}
-.cap-btn .sub{font-size:10.5px;font-weight:700;opacity:.85}
-.cap-btn.alt{background:#fff;color:var(--primary);border:1.5px solid var(--line);
-  box-shadow:0 4px 12px rgba(26,82,118,.10)}
+  box-shadow:0 10px 24px rgba(26,82,118,.3);margin-bottom:10px}
+.cap-hero:active{transform:scale(.98)}
+.cap-hero .ico{font-size:40px;line-height:1}
+.cap-hero-label{font-size:19px;font-weight:900;letter-spacing:.02em}
+.cap-hero-sub{font-size:11.5px;font-weight:700;opacity:.85}
+.cap-sub-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.cap-sub{border:1.5px solid var(--line);background:#fff;color:var(--primary);
+  border-radius:14px;padding:12px 8px;font-size:12.5px;font-weight:800}
 
-/* ===== サマリー ===== */
-.sum-bar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.sum-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-s);
-  padding:12px 14px}
-.sum-item .k{font-size:11px;font-weight:800;color:var(--muted);margin-bottom:3px}
-.sum-item .v{font-size:19px;font-weight:900;color:var(--primary)}
-.sum-item .v small{font-size:12px;font-weight:800;color:var(--muted);margin-left:2px}
+/* ===== ステータスチップ ===== */
+.home-status{text-align:center;margin-bottom:8px}
+.hs-chip{display:inline-block;background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--muted)}
+.hs-chip b{color:var(--primary);font-weight:900}
 
 /* ===== レシートリスト ===== */
 .month-head{display:flex;align-items:center;justify-content:space-between;
@@ -269,7 +268,7 @@ input,select,textarea{font:inherit;font-size:16px}
 /* ===== ガイドカード ===== */
 .guide-card{background:linear-gradient(135deg,#E8F4FD,#F2FAFF);border:1.5px solid #A8CDE8;
   border-radius:var(--r);padding:14px 16px;margin-bottom:14px}
-.guide-card .g-t{font-size:14.5px;font-weight:900;color:var(--primary);margin-bottom:6px}
+.guide-card .g-t{font-size:16px;font-weight:900;color:var(--primary);margin-bottom:6px}
 .guide-card .g-b{font-size:12.5px;font-weight:700;color:#3C5065;line-height:1.65}
 .guide-card .btn{margin-top:10px}
 
@@ -313,27 +312,21 @@ input,select,textarea{font:inherit;font-size:16px}
 
 <main class="main">
 
-  <!-- ============ タブ1: 記録 ============ -->
+  <!-- ============ タブ1: 撮る ============ -->
   <section id="tabHome" class="tab-panel">
-    <div class="cap-grid">
-      <button class="cap-btn" id="btnCam" type="button">
-        <span class="ico">📷</span>レシートを撮る
-        <span class="sub">病院・薬局・歯医者の会計後に</span>
-      </button>
-      <button class="cap-btn alt" id="btnLib" type="button">
-        <span class="ico">📄</span>写真/PDFを取り込む
-        <span class="sub">メールで届いた領収書など</span>
-      </button>
-    </div>
-    <button class="link-btn" id="btnImportHelp" type="button">📩 メールで届いたPDF領収書の入れ方</button>
-
     <div id="homeGuide"></div>
 
-    <div class="sum-bar">
-      <div class="sum-item"><div class="k">未申請</div><div class="v" id="sumCount">0<small>件</small></div></div>
-      <div class="sum-item"><div class="k">未申請の合計</div><div class="v" id="sumTotal">-</div></div>
+    <button class="cap-hero" id="btnCam" type="button">
+      <span class="ico">📷</span>
+      <span class="cap-hero-label">レシートを撮る</span>
+      <span class="cap-hero-sub">病院・薬局・歯医者の会計後にタップ</span>
+    </button>
+    <div class="cap-sub-row">
+      <button class="cap-sub" id="btnLib" type="button">📄 写真・PDFから入れる</button>
+      <button class="cap-sub" id="btnImportHelp" type="button">❓ メールのPDFは?</button>
     </div>
 
+    <div id="homeStatus" class="home-status"></div>
     <div id="homeList"></div>
   </section>
 
@@ -353,7 +346,7 @@ input,select,textarea{font:inherit;font-size:16px}
       </div>
       <div id="draftArea"></div>
       <p style="font-size:13px;color:var(--muted);font-weight:700;line-height:1.6;margin:2px 2px 12px">
-        申請するレシートをタップして選び(1回の申請書につき最大10件)、下の青いボタンでPDFを作成します。
+        レシートは<b>自動で選択済み</b>です。そのまま下の青いボタンを押せばOK。<br>申請しないものだけタップで外してください(1回の申請書は最大10件)。
       </p>
       <div class="month-quick" id="monthQuick"></div>
       <div id="claimList"></div>
@@ -380,7 +373,7 @@ input,select,textarea{font:inherit;font-size:16px}
 
   <!-- ============ タブ3: 設定 ============ -->
   <section id="tabSettings" class="tab-panel" hidden>
-    <div class="info-box">一度保存すれば、次回からずっと自動で申請書に反映されます。</div>
+    <div class="info-box">はじめまして!最初に<b>このページだけ</b>入力してください(1回だけ)。保存すれば、次からは「撮って送るだけ」になります。</div>
 
     <div class="card">
       <div class="card-title"><span class="ico">👤</span>契約者情報<span class="req">必須</span></div>
@@ -455,8 +448,8 @@ input,select,textarea{font:inherit;font-size:16px}
 
 <!-- ============ タブバー ============ -->
 <nav class="tabbar">
-  <button id="tabBtnHome" class="on" type="button"><span class="ico">📷</span>記録</button>
-  <button id="tabBtnClaim" type="button"><span class="ico tab-dot">✉️<span class="n" id="tabBadge" hidden>0</span></span>申請</button>
+  <button id="tabBtnHome" class="on" type="button"><span class="ico">📷</span>撮る</button>
+  <button id="tabBtnClaim" type="button"><span class="ico tab-dot">✉️<span class="n" id="tabBadge" hidden>0</span></span>申請する</button>
   <button id="tabBtnSettings" type="button"><span class="ico">⚙️</span>設定</button>
 </nav>
 
@@ -754,9 +747,17 @@ function goTab(name){
     $("tabBtn"+t).classList.toggle("on",t===name);
   });
   if(name==="Home") renderHome();
-  if(name==="Claim") renderClaim();
+  if(name==="Claim"){ autoSelectClaim(); renderClaim(); }
   if(name==="Settings") setTimeout(resizeSig,0);
   window.scrollTo(0,0);
+}
+function autoSelectClaim(){
+  // 迷わないように、未申請分は最初から選択済みにしておく(古い順に最大10件)
+  var any=Object.keys(selectedIds).some(function(k){return selectedIds[k];});
+  if(any) return;
+  selectableReceipts().sort(function(a,b){return a.date<b.date?-1:1;})
+    .slice(0,CLAIM_ROW_MAX)
+    .forEach(function(r){ selectedIds[r.id]=true; });
 }
 
 /* ---------- ヘッダー/バッジ ---------- */
@@ -775,8 +776,12 @@ function updateBadges(){
   var list=unclaimed();
   var total=list.reduce(function(s,r){return s+parseAmt(r.amount,profile.currency);},0);
   $("hdrBadge").textContent="未申請 "+list.length+"件";
-  $("sumCount").innerHTML=list.length+"<small>件</small>";
-  $("sumTotal").textContent=list.length?fmtMoney(total,profile.currency):"-";
+  var st=$("homeStatus");
+  if(st){
+    st.innerHTML=list.length
+      ? '<span class="hs-chip">未申請 <b>'+list.length+'件</b> ・ 合計 <b>'+esc(fmtMoney(total,profile.currency))+'</b></span>'
+      : "";
+  }
   var badge=$("tabBadge");
   badge.hidden=list.length===0;
   badge.textContent=String(list.length);
@@ -819,15 +824,15 @@ function renderHomeGuide(){
     var b=$("gGoSettings"); if(b) b.addEventListener("click",function(){goTab("Settings");});
   }else if(!receipts.length){
     g.innerHTML='<div class="guide-card"><div class="g-t">STEP 2/3 レシートを撮ってみましょう</div>'+
-      '<div class="g-b">病院・薬局の会計後にその場で上の📷ボタン。「誰・区分・金額」を選ぶだけで記録完了。あとは忘れてOKです。</div></div>';
+      '<div class="g-b">病院・薬局の会計後に、下の青いボタンで撮るだけ。「誰・区分・金額」を選べば記録完了。あとは忘れてOKです。</div></div>';
   }else if(draftClaims().length){
     g.innerHTML='<div class="guide-card"><div class="g-t">📨 送信待ちの申請書があります</div>'+
-      '<div class="g-b">「申請」タブの黄色いカードから送信を再開できます。</div>'+
+      '<div class="g-b">「申請する」タブの黄色いカードから送信を再開できます。</div>'+
       '<button class="btn sm" id="gGoClaim" type="button">✉️ 申請タブへ</button></div>';
     var b3=$("gGoClaim"); if(b3) b3.addEventListener("click",function(){goTab("Claim");});
   }else if(unclaimed().length){
     g.innerHTML='<div class="guide-card"><div class="g-t">STEP 3/3 たまったら申請へ</div>'+
-      '<div class="g-b">月末などに「申請」タブでまとめてPDF化→メール送信します(未申請 '+unclaimed().length+'件)。</div>'+
+      '<div class="g-b">月末などに「申請する」タブでまとめてPDF化→メール送信します(未申請 '+unclaimed().length+'件)。</div>'+
       '<button class="btn sm" id="gGoClaim" type="button">✉️ 申請タブへ</button></div>';
     var b2=$("gGoClaim"); if(b2) b2.addEventListener("click",function(){goTab("Claim");});
   }else{
@@ -1077,7 +1082,7 @@ function renderClaim(){
   if(!list.length){
     wrap.innerHTML='<div class="list-empty">'+(drafts.length
       ?'選択できるレシートはありません。<br>上の黄色いカードから送信をつづけてください。'
-      :'未申請のレシートはありません 🎉<br>「記録」タブで撮影するとここに並びます。')+'</div>';
+      :'未申請のレシートはありません 🎉<br>「撮る」タブで撮影するとここに並びます。')+'</div>';
     $("claimFoot").hidden=true;
   }else{
     var selCount=selCountNow;
@@ -1691,6 +1696,12 @@ function bind(){
       sheetState.cat=b.getAttribute("data-cat");
       syncCatUi();
       $("fRcCat").classList.remove("bad");
+      // 次の入力欄へ自動フォーカスして迷わせない
+      if(sheetState.cat==="M" && !$("rcCond").value.trim()){
+        $("rcCond").focus();
+      }else if(!$("rcAmt").value.trim()){
+        $("rcAmt").focus();
+      }
     });
   });
   $("rcAmt").addEventListener("input",function(){ $("fRcAmt").classList.remove("bad"); });
@@ -1702,11 +1713,11 @@ function bind(){
   // 送信ガイドシート
   $("sendSheetClose").addEventListener("click",function(){
     closeSendSheet();
-    toast("「申請」タブの黄色いカードからいつでも再開できます");
+    toast("「申請する」タブの黄色いカードからいつでも再開できます");
   });
   $("btnSendLater").addEventListener("click",function(){
     closeSendSheet();
-    toast("「申請」タブの黄色いカードからいつでも再開できます");
+    toast("「申請する」タブの黄色いカードからいつでも再開できます");
   });
   $("btnSendMail").addEventListener("click",async function(){
     var c=claims.find(function(x){return x.id===currentSendClaimId;});
