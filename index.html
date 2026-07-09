@@ -720,13 +720,27 @@ function drawScaled(img,maxDim,quality){
 function canvasToBlob(cv,quality){
   return new Promise(function(res){ cv.toBlob(function(b){res(b);},"image/jpeg",quality); });
 }
+function toGrayscale(cv){
+  // レシートはほぼ白黒のため、モノクロ化+軽いコントラスト強調で
+  // 文字を読みやすく保ったままファイルサイズを大幅に削減する
+  var ctx=cv.getContext("2d");
+  var img=ctx.getImageData(0,0,cv.width,cv.height);
+  var d=img.data;
+  for(var i=0;i<d.length;i+=4){
+    var y=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000;
+    y=(y-20)*255/215;              // 薄い影を白へ、文字を黒へ寄せる
+    d[i]=d[i+1]=d[i+2]=y<0?0:(y>255?255:y);
+  }
+  ctx.putImageData(img,0,0);
+  return cv;
+}
 async function processImageFile(file){
   var url=URL.createObjectURL(file);
   try{
     var img=await loadImage(url);
-    var mainCv=drawScaled(img,2000);
-    var blob=await canvasToBlob(mainCv,0.82);
-    var thumbCv=drawScaled(img,340);
+    var mainCv=toGrayscale(drawScaled(img,1600));
+    var blob=await canvasToBlob(mainCv,0.72);
+    var thumbCv=toGrayscale(drawScaled(img,340));
     var thumb=thumbCv.toDataURL("image/jpeg",0.6);
     return {blob:blob,thumb:thumb};
   }finally{ URL.revokeObjectURL(url); }
