@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no"/>
+<title>Claim Pocket プロトタイプ</title>
+<style>
+:root{
+  --primary:#1A5276;--primary-deep:#2E86C1;
+  --bg:#F4F9FD;--ink:#1B2B38;--muted:#6B8299;
+  --line:#DCE8F2;--ok:#16A34A;--warn:#B45309;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink);min-height:100%;
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",sans-serif;font-size:16px}
+button{font:inherit;cursor:pointer;border:none;background:none;touch-action:manipulation}
+input{font:inherit}
+
+.proto-badge{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);right:10px;z-index:999;
+  background:#FDE68A;color:#92400E;font-size:10px;font-weight:900;border-radius:999px;padding:4px 10px}
+
+.screen{min-height:100dvh;padding:calc(env(safe-area-inset-top,0px) + 24px) 20px calc(env(safe-area-inset-bottom,0px) + 100px);
+  max-width:520px;margin:0 auto}
+
+/* ===== ウィザード ===== */
+.wiz{display:flex;flex-direction:column;min-height:calc(100dvh - 40px)}
+.wiz-dots{display:flex;gap:6px;justify-content:center;margin-bottom:40px}
+.wiz-dots span{width:8px;height:8px;border-radius:50%;background:#C9DCEB}
+.wiz-dots span.on{background:var(--primary-deep);width:22px;border-radius:99px}
+.wiz-q{font-size:26px;font-weight:900;line-height:1.4;margin-bottom:6px;text-align:center}
+.wiz-sub{font-size:13px;color:var(--muted);font-weight:700;text-align:center;margin-bottom:28px;min-height:18px}
+.wiz-body{flex:1}
+.wiz input{width:100%;border:2px solid var(--line);border-radius:16px;padding:16px;
+  font-size:18px;font-weight:700;background:#fff;text-align:center;margin-bottom:12px;-webkit-appearance:none}
+.wiz input:focus{outline:none;border-color:var(--primary-deep)}
+.wiz-next{width:100%;background:var(--primary-deep);color:#fff;border-radius:18px;
+  padding:18px;font-size:17px;font-weight:900;box-shadow:0 8px 20px rgba(46,134,193,.3)}
+.wiz-next:active{transform:scale(.98)}
+.wiz-skip{width:100%;text-align:center;color:var(--muted);font-size:13px;font-weight:700;padding:14px}
+.wiz-chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:14px;min-height:44px}
+.wiz-chip{background:#fff;border:2px solid var(--primary-deep);color:var(--primary);
+  border-radius:999px;padding:10px 18px;font-size:16px;font-weight:900}
+.wiz-chip .x{color:#E74C3C;margin-left:8px;font-weight:900}
+.wiz-addrow{display:flex;gap:8px}
+.wiz-addrow input{flex:1;margin-bottom:0;text-align:left}
+.wiz-add{background:var(--primary-deep);color:#fff;border-radius:16px;min-width:64px;font-size:15px;font-weight:900}
+
+/* ===== 共通ヘッダー(アプリ画面) ===== */
+.app-head{display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.app-title{font-size:15px;font-weight:900;color:var(--muted);letter-spacing:.06em}
+
+/* ===== ホーム ===== */
+.cam-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px}
+.cam-btn{width:180px;height:180px;border-radius:50%;
+  background:linear-gradient(160deg,#2E86C1,#1A5276);color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 14px 34px rgba(26,82,118,.35);margin-bottom:14px}
+.cam-btn:active{transform:scale(.96)}
+.cam-btn .ico{font-size:58px;line-height:1}
+.cam-btn .t{font-size:16px;font-weight:900}
+.mini-row{display:flex;gap:12px;margin-bottom:22px}
+.mini-btn{width:52px;height:52px;border-radius:50%;background:#fff;border:1.5px solid var(--line);
+  font-size:22px;display:flex;align-items:center;justify-content:center;color:var(--primary)}
+
+.claim-banner{width:100%;background:#fff;border:2px solid var(--primary-deep);border-radius:20px;
+  padding:16px 18px;display:flex;align-items:center;gap:12px;margin-bottom:22px;
+  box-shadow:0 6px 18px rgba(46,134,193,.15)}
+.claim-banner .amt{flex:1;text-align:left}
+.claim-banner .amt .a{font-size:22px;font-weight:900;color:var(--primary)}
+.claim-banner .amt .c{font-size:12px;font-weight:800;color:var(--muted)}
+.claim-banner .go{background:var(--primary-deep);color:#fff;border-radius:14px;
+  padding:12px 18px;font-size:15px;font-weight:900;white-space:nowrap}
+
+.rc{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);
+  border-radius:16px;padding:12px 14px;margin-bottom:10px;width:100%;text-align:left}
+.rc .th{width:46px;height:46px;border-radius:12px;background:#EAF2FA;display:flex;
+  align-items:center;justify-content:center;font-size:22px;flex:0 0 auto}
+.rc .bd{flex:1;min-width:0}
+.rc .p{font-size:15px;font-weight:900}
+.rc .d{font-size:12px;color:var(--muted);font-weight:700;margin-top:2px}
+.rc .a{font-size:16px;font-weight:900;white-space:nowrap}
+.rc .st{font-size:10px;font-weight:900;color:var(--ok);white-space:nowrap;margin-left:4px}
+.m-head{font-size:13px;font-weight:900;color:var(--muted);margin:16px 4px 8px;text-align:left}
+.empty{color:#9FB4C6;font-size:14px;font-weight:700;text-align:center;padding:30px 0;line-height:1.8}
+
+/* ===== タブバー ===== */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:120;background:rgba(255,255,255,.97);
+  backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(3,1fr);
+  padding:8px 8px calc(env(safe-area-inset-bottom,0px) + 8px)}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px;color:#8AA2B8;font-size:11.5px;font-weight:800}
+.tabbar .ico{font-size:24px;line-height:1.1;position:relative}
+.tabbar button.on{color:var(--primary)}
+.tabbar .n{position:absolute;top:-5px;right:-13px;background:#E74C3C;color:#fff;
+  font-size:10px;font-weight:900;border-radius:999px;min-width:17px;height:17px;
+  display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* ===== 記録シート ===== */
+.sheet-wrap{position:fixed;inset:0;z-index:300;background:rgba(27,43,56,.5);
+  display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:520px;max-height:94dvh;overflow:auto;
+  border-radius:24px 24px 0 0;padding:12px 20px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.grip{width:44px;height:5px;border-radius:99px;background:#C3D3E2;margin:4px auto 14px}
+.sheet-img{width:100%;height:120px;object-fit:cover;border-radius:14px;border:1px solid var(--line);
+  background:#fff;margin-bottom:18px;display:flex;align-items:center;justify-content:center;font-size:40px}
+.q{font-size:15px;font-weight:900;margin:0 0 10px;display:flex;align-items:center;gap:6px}
+.q .qn{width:22px;height:22px;border-radius:50%;background:var(--primary-deep);color:#fff;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.pick-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.pick{background:#fff;border:2px solid var(--line);border-radius:16px;
+  padding:12px 18px;font-size:15px;font-weight:900;color:var(--muted)}
+.pick.big{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;padding:12px 6px}
+.pick.big .i{font-size:26px}
+.pick.big .l{font-size:12.5px}
+.pick.on{border-color:var(--primary-deep);background:var(--primary-deep);color:#fff}
+.amt-line{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--line);
+  border-radius:16px;padding:4px 16px;margin-bottom:20px}
+.amt-line:focus-within{border-color:var(--primary-deep)}
+.amt-line .cur{font-size:16px;font-weight:900;color:var(--muted)}
+.amt-line input{flex:1;border:none;padding:14px 0;font-size:26px;font-weight:900;
+  background:none;text-align:right;min-width:0}
+.amt-line input:focus{outline:none}
+.date-line{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.date-line .q{margin:0}
+.date-line input{border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;
+  background:#fff;font-size:14px;font-weight:800;color:var(--ink);-webkit-appearance:none}
+.save-btn{width:100%;background:var(--ok);color:#fff;border-radius:18px;padding:18px;
+  font-size:17px;font-weight:900;box-shadow:0 8px 20px rgba(22,163,74,.28)}
+.save-btn:disabled{background:#C9DCEB;box-shadow:none}
+.cond-input{width:100%;border:2px solid var(--line);border-radius:16px;padding:13px 16px;
+  font-size:15px;font-weight:700;background:#fff;margin:-8px 0 20px;-webkit-appearance:none}
+.cond-input:focus{outline:none;border-color:var(--primary-deep)}
+
+/* ===== 申請画面 ===== */
+.total-card{background:linear-gradient(150deg,#1A5276,#2E86C1);border-radius:24px;
+  color:#fff;padding:26px 20px;text-align:center;margin-bottom:14px;
+  box-shadow:0 12px 30px rgba(26,82,118,.3)}
+.total-card .lbl{font-size:13px;font-weight:800;opacity:.85}
+.total-card .amt{font-size:40px;font-weight:900;letter-spacing:.01em;margin:4px 0 2px}
+.total-card .cnt{font-size:13px;font-weight:800;opacity:.85;margin-bottom:18px}
+.make-btn{width:100%;background:#fff;color:var(--primary);border-radius:16px;
+  padding:16px;font-size:16.5px;font-weight:900}
+.make-btn:active{transform:scale(.98)}
+.sel-note{text-align:center;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:12px}
+.rc.sel .th{background:var(--primary-deep)}
+.rc.off{opacity:.35}
+.rc .chk{width:26px;height:26px;border-radius:50%;border:2px solid #B9CEDF;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:900}
+.rc.sel .chk{background:var(--ok);border-color:var(--ok)}
+
+/* ===== 送信フロー(逐次表示) ===== */
+.send-screen{text-align:center;padding-top:30px}
+.big-emoji{font-size:64px;margin-bottom:14px}
+.send-h{font-size:24px;font-weight:900;margin-bottom:8px}
+.send-s{font-size:14px;color:var(--muted);font-weight:700;margin-bottom:30px;line-height:1.7}
+.send-main{width:100%;background:var(--primary-deep);color:#fff;border-radius:18px;
+  padding:19px;font-size:17.5px;font-weight:900;box-shadow:0 10px 24px rgba(46,134,193,.32);margin-bottom:12px}
+.send-main.green{background:var(--ok);box-shadow:0 10px 24px rgba(22,163,74,.3)}
+.send-sub{width:100%;color:var(--muted);font-size:14px;font-weight:800;padding:14px}
+.paste-hint{background:#FFF8E1;border:1.5px solid #FDE68A;border-radius:16px;
+  padding:14px;font-size:14px;font-weight:800;color:#92400E;margin-bottom:26px;line-height:1.7}
+
+/* ===== 設定(一覧) ===== */
+.set-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);
+  border-radius:16px;padding:16px;margin-bottom:10px;width:100%;text-align:left}
+.set-row .i{font-size:22px}
+.set-row .t{flex:1;font-size:15px;font-weight:900}
+.set-row .v{font-size:12px;color:var(--ok);font-weight:900}
+.set-row .ar{color:#B9CEDF;font-weight:900}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 100px);z-index:600;
+  background:#1B2B38;color:#fff;font-size:13.5px;font-weight:800;
+  border-radius:999px;padding:11px 20px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="proto-badge">プロトタイプ(データは仮)</div>
+
+<!-- ============ 初回ウィザード ============ -->
+<div id="scrWiz" class="screen">
+  <div class="wiz">
+    <div class="wiz-dots" id="wizDots"></div>
+    <div class="wiz-body" id="wizBody"></div>
+    <button class="wiz-next" id="wizNext" type="button">次へ</button>
+    <button class="wiz-skip" id="wizSkip" type="button">プロトタイプなのでスキップ</button>
+  </div>
+</div>
+
+<!-- ============ ホーム ============ -->
+<div id="scrHome" class="screen" hidden>
+  <div class="app-head"><span class="app-title">CLAIM POCKET</span></div>
+  <div class="cam-wrap">
+    <button class="cam-btn" id="btnCam" type="button">
+      <span class="ico">📷</span><span class="t">レシートを撮る</span>
+    </button>
+    <div class="mini-row">
+      <button class="mini-btn" id="btnLib" type="button" aria-label="写真やPDFから取り込む">📄</button>
+      <button class="mini-btn" id="btnHelp" type="button" aria-label="ヘルプ">?</button>
+    </div>
+  </div>
+  <button class="claim-banner" id="claimBanner" type="button" hidden>
+    <span class="amt"><span class="a" id="bannerAmt">A$ 0.00</span><br><span class="c" id="bannerCnt">0件 申請できます</span></span>
+    <span class="go">申請する →</span>
+  </button>
+  <div id="homeList"></div>
+</div>
+
+<!-- ============ 申請 ============ -->
+<div id="scrClaim" class="screen" hidden>
+  <div class="app-head"><span class="app-title">申請する</span></div>
+  <div id="claimMain">
+    <div class="total-card">
+      <div class="lbl">こんかいの申請</div>
+      <div class="amt" id="claimAmt">A$ 0.00</div>
+      <div class="cnt" id="claimCnt">0件</div>
+      <button class="make-btn" id="btnMake" type="button">🧾 申請書をつくる</button>
+    </div>
+    <p class="sel-note">はずしたいレシートはタップ</p>
+    <div id="claimList"></div>
+  </div>
+
+  <!-- 送信フロー: 1画面ずつ -->
+  <div id="sendStep1" class="send-screen" hidden>
+    <div class="big-emoji">🧾</div>
+    <div class="send-h">できました!</div>
+    <div class="send-s" id="sendInfo">申請書PDF ・ 0.4MB</div>
+    <button class="send-main" id="btnShare" type="button">✉️ メールで送る</button>
+    <button class="send-sub" id="btnSendBack" type="button">← もどる</button>
+  </div>
+  <div id="sendStep2" class="send-screen" hidden>
+    <div class="big-emoji">📮</div>
+    <div class="send-h">送信できましたか?</div>
+    <div class="paste-hint">宛先はコピー済み。<br>メールの宛先欄を<b>長押し→ペースト</b></div>
+    <button class="send-main green" id="btnDone" type="button">✅ 送信できた</button>
+    <button class="send-sub" id="btnLater" type="button">あとで送る</button>
+  </div>
+  <div id="sendStep3" class="send-screen" hidden>
+    <div class="big-emoji">🎉</div>
+    <div class="send-h">申請完了!</div>
+    <div class="send-s">つぎのレシートが貯まったらまた来てください</div>
+    <button class="send-main" id="btnBackHome" type="button">ホームへもどる</button>
+  </div>
+</div>
+
+<!-- ============ 設定 ============ -->
+<div id="scrSettings" class="screen" hidden>
+  <div class="app-head"><span class="app-title">設定</span></div>
+  <button class="set-row" type="button"><span class="i">👤</span><span class="t">あなたの情報</span><span class="v">✓ 登録済み</span><span class="ar">›</span></button>
+  <button class="set-row" type="button"><span class="i">🏦</span><span class="t">振込口座</span><span class="v">✓ 登録済み</span><span class="ar">›</span></button>
+  <button class="set-row" type="button"><span class="i">👥</span><span class="t">家族</span><span class="v">✓ 3人</span><span class="ar">›</span></button>
+  <button class="set-row" type="button"><span class="i">✍️</span><span class="t">署名</span><span class="v">✓ 登録済み</span><span class="ar">›</span></button>
+  <button class="set-row" type="button"><span class="i">💱</span><span class="t">通貨</span><span class="v">AUD</span><span class="ar">›</span></button>
+</div>
+
+<!-- ============ タブバー ============ -->
+<nav class="tabbar" id="tabbar" hidden>
+  <button id="tbHome" class="on" type="button"><span class="ico">📷</span>撮る</button>
+  <button id="tbClaim" type="button"><span class="ico">✉️<span class="n" id="tbBadge" hidden>0</span></span>申請</button>
+  <button id="tbSet" type="button"><span class="ico">⚙️</span>設定</button>
+</nav>
+
+<!-- ============ 記録シート ============ -->
+<div class="sheet-wrap" id="recSheet" hidden>
+  <div class="sheet">
+    <div class="grip"></div>
+    <div class="sheet-img">🧾</div>
+    <p class="q"><span class="qn">1</span>だれの?</p>
+    <div class="pick-row" id="pkPerson">
+      <button class="pick" data-p="SOTARO" type="button">SOTARO</button>
+      <button class="pick" data-p="KAEDE" type="button">KAEDE</button>
+      <button class="pick" data-p="AYAKO" type="button">AYAKO</button>
+    </div>
+    <p class="q"><span class="qn">2</span>なにで?</p>
+    <div class="pick-row" id="pkCat">
+      <button class="pick big" data-c="M" type="button"><span class="i">🩺</span><span class="l">病院</span></button>
+      <button class="pick big" data-c="P" type="button"><span class="i">💊</span><span class="l">薬局</span></button>
+      <button class="pick big" data-c="D" type="button"><span class="i">🦷</span><span class="l">歯医者</span></button>
+    </div>
+    <input class="cond-input" id="condInput" placeholder="なんの症状?(例: Hay fever)" hidden/>
+    <p class="q"><span class="qn">3</span>いくら?</p>
+    <div class="amt-line">
+      <span class="cur">A$</span>
+      <input id="amtInput" inputmode="decimal" placeholder="0.00"/>
+    </div>
+    <div class="date-line">
+      <p class="q" style="margin:0"><span class="qn">4</span>いつ?</p>
+      <input type="date" id="dateInput"/>
+    </div>
+    <button class="save-btn" id="btnSave" type="button" disabled>✓ ほぞん</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+function $(id){ return document.getElementById(id); }
+var toastTimer=0;
+function toast(m){ var el=$("toast"); el.textContent=m; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){el.classList.remove("show");},2200); }
+
+/* ---- 仮データ ---- */
+var receipts=[
+  {id:1,person:"SOTARO",cat:"P",amt:31.00,date:"2026-07-08",claimed:false},
+  {id:2,person:"KAEDE",cat:"D",amt:120.50,date:"2026-06-15",claimed:false},
+  {id:3,person:"AYAKO",cat:"M",amt:85.00,date:"2026-06-02",claimed:true}
+];
+var nextId=4;
+var excluded={};
+var catIco={M:"🩺",P:"💊",D:"🦷"};
+function fmt(n){ return "A$ "+n.toLocaleString("en-AU",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function auDate(iso){ var p=iso.split("-"); return p[2]+"/"+p[1]; }
+function unclaimed(){ return receipts.filter(function(r){return !r.claimed;}); }
+function selected(){ return unclaimed().filter(function(r){return !excluded[r.id];}); }
+
+/* ---- ウィザード ---- */
+var wizSteps=[
+  {q:"こんにちは 👋",sub:"さいしょに 4つだけ おしえてください",body:""},
+  {q:"お名前は?",sub:"ローマ字で(保険証券のとおりに)",body:'<input placeholder="TARO YAMADA" autocapitalize="characters"/>'},
+  {q:"証券番号は?",sub:"MEDIPACK0802/ のつづきだけ",body:'<input placeholder="123456"/>'},
+  {q:"振込先は?",sub:"保険金を受けとる口座",body:'<input placeholder="BSB 013435"/><input placeholder="口座番号"/>'},
+  {q:"ご家族は?",sub:"病院にかかる人をタップで追加",body:'<div class="wiz-chips" id="wizChips"></div><div class="wiz-addrow"><input id="wizMem" placeholder="HANAKO" autocapitalize="characters"/><button class="wiz-add" id="wizAdd" type="button">追加</button></div>'},
+  {q:"できました 🎉",sub:"つぎからは 撮って送るだけ",body:""}
+];
+var wizIdx=0;
+var wizMembers=["AYAKO"];
+function renderWiz(){
+  $("wizDots").innerHTML=wizSteps.map(function(_,i){ return '<span class="'+(i===wizIdx?"on":"")+'"></span>'; }).join("");
+  var s=wizSteps[wizIdx];
+  $("wizBody").innerHTML='<div class="wiz-q">'+s.q+'</div><div class="wiz-sub">'+s.sub+'</div>'+s.body;
+  $("wizNext").textContent = wizIdx===0?"はじめる" : (wizIdx===wizSteps.length-1?"つかいはじめる":"次へ");
+  if(wizIdx===4){
+    renderWizChips();
+    $("wizAdd").addEventListener("click",function(){
+      var v=($("wizMem").value||"").toUpperCase().trim();
+      if(v){ wizMembers.push(v); $("wizMem").value=""; renderWizChips(); }
+    });
+  }
+  var inp=$("wizBody").querySelector("input");
+  if(inp && wizIdx>0 && wizIdx<4) setTimeout(function(){inp.focus();},250);
+}
+function renderWizChips(){
+  $("wizChips").innerHTML=wizMembers.map(function(m,i){
+    return '<button class="wiz-chip" data-i="'+i+'" type="button">'+m+'<span class="x">×</span></button>';
+  }).join("");
+  $("wizChips").querySelectorAll("[data-i]").forEach(function(b){
+    b.addEventListener("click",function(){ wizMembers.splice(Number(b.getAttribute("data-i")),1); renderWizChips(); });
+  });
+}
+$("wizNext").addEventListener("click",function(){
+  if(wizIdx<wizSteps.length-1){ wizIdx++; renderWiz(); }
+  else enterApp();
+});
+$("wizSkip").addEventListener("click",enterApp);
+
+function enterApp(){
+  $("scrWiz").hidden=true;
+  $("tabbar").hidden=false;
+  goTab("Home");
+}
+
+/* ---- タブ ---- */
+function goTab(name){
+  $("scrHome").hidden=name!=="Home";
+  $("scrClaim").hidden=name!=="Claim";
+  $("scrSettings").hidden=name!=="Set";
+  $("tbHome").classList.toggle("on",name==="Home");
+  $("tbClaim").classList.toggle("on",name==="Claim");
+  $("tbSet").classList.toggle("on",name==="Set");
+  if(name==="Home") renderHome();
+  if(name==="Claim"){ showClaimMain(); renderClaim(); }
+  window.scrollTo(0,0);
+}
+$("tbHome").addEventListener("click",function(){goTab("Home");});
+$("tbClaim").addEventListener("click",function(){goTab("Claim");});
+$("tbSet").addEventListener("click",function(){goTab("Set");});
+
+/* ---- ホーム ---- */
+function rcHtml(r,mode){
+  var st=mode==="home" ? (r.claimed?'<span class="st">✓ 申請済</span>':"") : "";
+  var chk=mode==="claim" ? '<span class="chk">'+(!excluded[r.id]?"✓":"")+'</span>' : "";
+  return chk+
+    '<span class="th">'+catIco[r.cat]+'</span>'+
+    '<span class="bd"><span class="p">'+r.person+'</span><br><span class="d">'+auDate(r.date)+'</span></span>'+
+    '<span class="a">'+fmt(r.amt)+'</span>'+st;
+}
+function renderHome(){
+  var un=unclaimed();
+  var total=un.reduce(function(s,r){return s+r.amt;},0);
+  $("claimBanner").hidden=un.length===0;
+  $("bannerAmt").textContent=fmt(total);
+  $("bannerCnt").textContent=un.length+"件 申請できます";
+  $("tbBadge").hidden=un.length===0;
+  $("tbBadge").textContent=String(un.length);
+  var byMonth={};
+  receipts.slice().sort(function(a,b){return a.date<b.date?1:-1;}).forEach(function(r){
+    var k=r.date.slice(0,7);
+    (byMonth[k]=byMonth[k]||[]).push(r);
+  });
+  $("homeList").innerHTML=receipts.length===0
+    ? '<div class="empty">まだレシートがありません<br>👆 会計のあとに撮るだけ</div>'
+    : Object.keys(byMonth).sort().reverse().map(function(k){
+        var p=k.split("-");
+        return '<div class="m-head">'+Number(p[1])+'月</div>'+
+          byMonth[k].map(function(r){ return '<button class="rc" type="button">'+rcHtml(r,"home")+'</button>'; }).join("");
+      }).join("");
+}
+$("claimBanner").addEventListener("click",function(){goTab("Claim");});
+
+/* ---- 記録シート ---- */
+var rec={person:"",cat:"",amt:"",date:"2026-07-10"};
+function openSheet(){
+  rec={person:"",cat:"",amt:"",date:"2026-07-10"};
+  $("condInput").value=""; $("condInput").hidden=true;
+  $("amtInput").value="";
+  $("dateInput").value=rec.date;
+  syncPicks();
+  $("recSheet").hidden=false;
+  document.body.style.overflow="hidden";
+}
+function closeSheet(){ $("recSheet").hidden=true; document.body.style.overflow=""; }
+function syncPicks(){
+  document.querySelectorAll("#pkPerson .pick").forEach(function(b){ b.classList.toggle("on",b.getAttribute("data-p")===rec.person); });
+  document.querySelectorAll("#pkCat .pick").forEach(function(b){ b.classList.toggle("on",b.getAttribute("data-c")===rec.cat); });
+  $("condInput").hidden=rec.cat!=="M";
+  $("btnSave").disabled=!(rec.person && rec.cat && parseFloat($("amtInput").value)>0);
+}
+$("btnCam").addEventListener("click",openSheet);
+$("btnLib").addEventListener("click",function(){ toast("(プロトタイプ: ファイル選択の代わりにシートを開きます)"); openSheet(); });
+$("btnHelp").addEventListener("click",function(){ toast("メールのPDFは: 共有→ファイルに保存→📄から選択"); });
+document.querySelectorAll("#pkPerson .pick").forEach(function(b){
+  b.addEventListener("click",function(){ rec.person=b.getAttribute("data-p"); syncPicks(); });
+});
+document.querySelectorAll("#pkCat .pick").forEach(function(b){
+  b.addEventListener("click",function(){
+    rec.cat=b.getAttribute("data-c"); syncPicks();
+    if(rec.cat==="M"){ $("condInput").focus(); } else if(!$("amtInput").value){ $("amtInput").focus(); }
+  });
+});
+$("amtInput").addEventListener("input",syncPicks);
+$("btnSave").addEventListener("click",function(){
+  receipts.unshift({id:nextId++,person:rec.person,cat:rec.cat,
+    amt:parseFloat($("amtInput").value)||0,date:$("dateInput").value,claimed:false});
+  closeSheet();
+  toast("ほぞんしました ✓");
+  renderHome();
+});
+$("recSheet").addEventListener("click",function(e){ if(e.target===this) closeSheet(); });
+
+/* ---- 申請 ---- */
+function renderClaim(){
+  var sel=selected();
+  var total=sel.reduce(function(s,r){return s+r.amt;},0);
+  $("claimAmt").textContent=fmt(total);
+  $("claimCnt").textContent=sel.length+"件";
+  $("btnMake").disabled=sel.length===0;
+  var un=unclaimed();
+  $("claimList").innerHTML=un.length===0
+    ? '<div class="empty">申請できるレシートはありません 🎉</div>'
+    : un.map(function(r){
+        return '<button class="rc '+(excluded[r.id]?"off":"sel")+'" data-id="'+r.id+'" type="button">'+rcHtml(r,"claim")+'</button>';
+      }).join("");
+  $("claimList").querySelectorAll("[data-id]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var id=Number(b.getAttribute("data-id"));
+      excluded[id]=!excluded[id];
+      renderClaim();
+    });
+  });
+}
+function showClaimMain(){
+  $("claimMain").hidden=false;
+  $("sendStep1").hidden=true; $("sendStep2").hidden=true; $("sendStep3").hidden=true;
+}
+$("btnMake").addEventListener("click",function(){
+  $("claimMain").hidden=true;
+  $("sendInfo").textContent="申請書PDF ・ "+selected().length+"件 ・ "+fmt(selected().reduce(function(s,r){return s+r.amt;},0))+" ・ 0.4MB";
+  $("sendStep1").hidden=false;
+  window.scrollTo(0,0);
+});
+$("btnSendBack").addEventListener("click",showClaimMain);
+$("btnShare").addEventListener("click",function(){
+  toast("(プロトタイプ: ここで共有シートが開きます)");
+  setTimeout(function(){
+    $("sendStep1").hidden=true;
+    $("sendStep2").hidden=false;
+    window.scrollTo(0,0);
+  },600);
+});
+$("btnLater").addEventListener("click",function(){
+  toast("あとで「申請」タブから送れます");
+  goTab("Home");
+});
+$("btnDone").addEventListener("click",function(){
+  selected().forEach(function(r){ r.claimed=true; });
+  excluded={};
+  $("sendStep2").hidden=true;
+  $("sendStep3").hidden=false;
+  $("tbBadge").hidden=unclaimed().length===0;
+  window.scrollTo(0,0);
+});
+$("btnBackHome").addEventListener("click",function(){ goTab("Home"); });
+
+/* ---- 起動 ---- */
+renderWiz();
+})();
+</script>
+</body>
+</html>
