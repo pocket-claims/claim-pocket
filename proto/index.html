@@ -168,6 +168,23 @@ input{font:inherit}
 .mrow .mk{flex:0 0 40px;font-size:12px;font-weight:800;color:var(--muted)}
 .mrow .mv{flex:1;font-size:13.5px;font-weight:800;word-break:break-all}
 .mbody{padding:12px 0 0;font-size:12.5px;color:var(--muted);font-weight:700;line-height:1.7}
+.attach-row{width:100%;text-align:left;background:none}
+.attach-row:active{opacity:.6}
+.attach-view{flex:0 0 auto;font-size:12.5px;font-weight:900;color:var(--primary-deep);white-space:nowrap}
+
+/* ===== 添付プレビュー ===== */
+.pv-wrap{position:fixed;inset:0;z-index:400;background:rgba(27,43,56,.92);
+  display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
+.pv-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pv-title{color:#fff;font-size:14px;font-weight:900}
+.pv-close{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);
+  color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.pv-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+.pv-page{background:#fff;border-radius:10px;margin:0 auto 14px;max-width:340px;
+  aspect-ratio:210/297;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:8px;color:#4B6275;font-size:13px;font-weight:800}
+.pv-page .big{font-size:44px}
+.pv-page .pn{font-size:11px;color:#9FB4C6}
 
 /* ===== 設定(一覧) ===== */
 .set-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);
@@ -246,7 +263,11 @@ input{font:inherit}
     <div class="mail-card">
       <div class="mrow"><span class="mk">宛先</span><span class="mv">jp@csnet.com.au</span></div>
       <div class="mrow"><span class="mk">件名</span><span class="mv" id="mailSubj">Claim Submission: AYAKO HAMA - 10/07/2026</span></div>
-      <div class="mrow"><span class="mk">添付</span><span class="mv" id="mailAttach">📎 Claim_AYAKO_HAMA.pdf(申請書+領収書)</span></div>
+      <button class="mrow attach-row" id="attachRow" type="button">
+        <span class="mk">添付</span>
+        <span class="mv" id="mailAttach">📎 Claim_AYAKO_HAMA.pdf(申請書+領収書)</span>
+        <span class="attach-view">確認 ›</span>
+      </button>
       <div class="mbody">Dear Claims Team,<br><br>Please find the attached documents for my insurance claim.<br>…(本文も自動入力済み)</div>
     </div>
     <button class="send-main green" id="btnSendNow" type="button">🚀 送信する</button>
@@ -306,6 +327,15 @@ input{font:inherit}
     </div>
     <button class="save-btn" id="btnSave" type="button" disabled>✓ 保存</button>
   </div>
+</div>
+
+<!-- ============ 添付プレビュー ============ -->
+<div class="pv-wrap" id="pvWrap" hidden>
+  <div class="pv-head">
+    <span class="pv-title" id="pvTitle">添付の中身(3ページ)</span>
+    <button class="pv-close" id="pvClose" type="button">✕</button>
+  </div>
+  <div class="pv-body" id="pvBody"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -509,6 +539,17 @@ $("btnAutoMail").addEventListener("click",function(){
 $("btnShareAlt").addEventListener("click",function(){
   toast("(プロトタイプ: 共有シートが開き、添付済みメールを自分で送れます)");
 });
+$("attachRow").addEventListener("click",function(){
+  var sel=selected();
+  $("pvTitle").textContent="添付の中身("+(sel.length+1)+"ページ)";
+  var html='<div class="pv-page"><span class="big">📋</span>1ページ目<br>申請書(Claim Form)<span class="pn">氏名・口座・明細・署名 入り</span></div>';
+  sel.forEach(function(r,i){
+    html+='<div class="pv-page"><span class="big">🧾</span>'+(i+2)+'ページ目<br>領収書: '+r.person+' '+fmt(r.amt)+'<span class="pn">'+auDate(r.date)+' ・ '+(catIco[r.cat])+'</span></div>';
+  });
+  $("pvBody").innerHTML=html;
+  $("pvWrap").hidden=false;
+});
+$("pvClose").addEventListener("click",function(){ $("pvWrap").hidden=true; });
 $("btnSendNow").addEventListener("click",function(){
   selected().forEach(function(r){ r.claimed=true; });
   excluded={};
