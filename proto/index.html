@@ -51,17 +51,18 @@ input{font:inherit}
 .app-title{font-size:15px;font-weight:900;color:var(--muted);letter-spacing:.06em}
 
 /* ===== ホーム ===== */
-.cam-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px}
-.cam-btn{width:180px;height:180px;border-radius:50%;
-  background:linear-gradient(160deg,#2E86C1,#1A5276);color:#fff;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  box-shadow:0 14px 34px rgba(26,82,118,.35);margin-bottom:14px}
-.cam-btn:active{transform:scale(.96)}
-.cam-btn .ico{font-size:58px;line-height:1}
-.cam-btn .t{font-size:16px;font-weight:900}
-.mini-row{display:flex;gap:12px;margin-bottom:22px}
-.mini-btn{width:52px;height:52px;border-radius:50%;background:#fff;border:1.5px solid var(--line);
-  font-size:22px;display:flex;align-items:center;justify-content:center;color:var(--primary)}
+.act-btn{width:100%;border-radius:20px;padding:20px 16px;margin-bottom:12px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:#fff;border:2px solid var(--line);color:var(--primary);
+  font-size:17px;font-weight:900}
+.act-btn:active{transform:scale(.98)}
+.act-btn .sub{font-size:11.5px;font-weight:700;color:var(--muted)}
+.act-btn.primary{background:linear-gradient(150deg,#2E86C1,#1A5276);color:#fff;border:none;
+  box-shadow:0 10px 26px rgba(26,82,118,.3);padding:24px 16px;font-size:19px}
+.act-btn.primary .sub{color:rgba(255,255,255,.8)}
+.act-gap{height:8px}
+.head-help{position:absolute;right:0;top:-4px;width:36px;height:36px;border-radius:50%;
+  background:#fff;border:1.5px solid var(--line);font-size:16px;font-weight:900;color:var(--muted)}
 
 .claim-banner{width:100%;background:#fff;border:2px solid var(--primary-deep);border-radius:20px;
   padding:16px 18px;display:flex;align-items:center;gap:12px;margin-bottom:22px;
@@ -161,6 +162,12 @@ input{font:inherit}
 .send-sub{width:100%;color:var(--muted);font-size:14px;font-weight:800;padding:14px}
 .paste-hint{background:#FFF8E1;border:1.5px solid #FDE68A;border-radius:16px;
   padding:14px;font-size:14px;font-weight:800;color:#92400E;margin-bottom:26px;line-height:1.7}
+.mail-card{background:#fff;border:1.5px solid var(--line);border-radius:18px;
+  padding:6px 16px 14px;margin-bottom:20px;text-align:left}
+.mrow{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.mrow .mk{flex:0 0 40px;font-size:12px;font-weight:800;color:var(--muted)}
+.mrow .mv{flex:1;font-size:13.5px;font-weight:800;word-break:break-all}
+.mbody{padding:12px 0 0;font-size:12.5px;color:var(--muted);font-weight:700;line-height:1.7}
 
 /* ===== 設定(一覧) ===== */
 .set-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);
@@ -192,16 +199,19 @@ input{font:inherit}
 
 <!-- ============ ホーム ============ -->
 <div id="scrHome" class="screen" hidden>
-  <div class="app-head"><span class="app-title">CLAIM POCKET</span></div>
-  <div class="cam-wrap">
-    <button class="cam-btn" id="btnCam" type="button">
-      <span class="ico">📷</span><span class="t">レシートを撮る</span>
-    </button>
-    <div class="mini-row">
-      <button class="mini-btn" id="btnLib" type="button" aria-label="写真やPDFから取り込む">📄</button>
-      <button class="mini-btn" id="btnHelp" type="button" aria-label="ヘルプ">?</button>
-    </div>
+  <div class="app-head" style="position:relative">
+    <span class="app-title">CLAIM POCKET</span>
+    <button class="head-help" id="btnHelp" type="button" aria-label="ヘルプ">?</button>
   </div>
+  <button class="act-btn primary" id="btnCam" type="button">
+    📷 写真を撮る
+    <span class="sub">紙の領収書はこちら(会計後にその場で)</span>
+  </button>
+  <button class="act-btn" id="btnLib" type="button">
+    📄 領収書ファイルを選択
+    <span class="sub">メールで届いたPDFなどはこちら</span>
+  </button>
+  <div class="act-gap"></div>
   <button class="claim-banner" id="claimBanner" type="button" hidden>
     <span class="amt"><span class="a" id="bannerAmt">A$ 0.00</span><br><span class="c" id="bannerCnt">0件 申請できます</span></span>
     <span class="go">申請する →</span>
@@ -214,35 +224,39 @@ input{font:inherit}
   <div class="app-head"><span class="app-title">申請する</span></div>
   <div id="claimMain">
     <div class="total-card">
-      <div class="lbl">こんかいの申請</div>
+      <div class="lbl">今回の申請</div>
       <div class="amt" id="claimAmt">A$ 0.00</div>
       <div class="cnt" id="claimCnt">0件</div>
-      <button class="make-btn" id="btnMake" type="button">🧾 申請書をつくる</button>
+      <button class="make-btn" id="btnMake" type="button">🧾 申請書を作る</button>
     </div>
-    <p class="sel-note">はずしたいレシートはタップ</p>
+    <p class="sel-note">外したいレシートはタップ</p>
     <div id="claimList"></div>
   </div>
 
   <!-- 送信フロー: 1画面ずつ -->
   <div id="sendStep1" class="send-screen" hidden>
     <div class="big-emoji">🧾</div>
-    <div class="send-h">できました!</div>
+    <div class="send-h">申請書ができました</div>
     <div class="send-s" id="sendInfo">申請書PDF ・ 0.4MB</div>
-    <button class="send-main" id="btnShare" type="button">✉️ メールで送る</button>
-    <button class="send-sub" id="btnSendBack" type="button">← もどる</button>
+    <button class="send-main" id="btnAutoMail" type="button">📨 メールを自動作成</button>
+    <button class="send-sub" id="btnSendBack" type="button">← 戻る</button>
   </div>
   <div id="sendStep2" class="send-screen" hidden>
-    <div class="big-emoji">📮</div>
-    <div class="send-h">送信できましたか?</div>
-    <div class="paste-hint">宛先はコピー済み。<br>メールの宛先欄を<b>長押し→ペースト</b></div>
-    <button class="send-main green" id="btnDone" type="button">✅ 送信できた</button>
-    <button class="send-sub" id="btnLater" type="button">あとで送る</button>
+    <div class="send-h" style="font-size:20px;margin-bottom:16px">この内容で送信します</div>
+    <div class="mail-card">
+      <div class="mrow"><span class="mk">宛先</span><span class="mv">jp@csnet.com.au</span></div>
+      <div class="mrow"><span class="mk">件名</span><span class="mv" id="mailSubj">Claim Submission: AYAKO HAMA - 10/07/2026</span></div>
+      <div class="mrow"><span class="mk">添付</span><span class="mv" id="mailAttach">📎 Claim_AYAKO_HAMA.pdf(申請書+領収書)</span></div>
+      <div class="mbody">Dear Claims Team,<br><br>Please find the attached documents for my insurance claim.<br>…(本文も自動入力済み)</div>
+    </div>
+    <button class="send-main green" id="btnSendNow" type="button">🚀 送信する</button>
+    <button class="send-sub" id="btnShareAlt" type="button">自分のメールアプリで送る</button>
   </div>
   <div id="sendStep3" class="send-screen" hidden>
     <div class="big-emoji">🎉</div>
     <div class="send-h">申請完了!</div>
-    <div class="send-s">つぎのレシートが貯まったらまた来てください</div>
-    <button class="send-main" id="btnBackHome" type="button">ホームへもどる</button>
+    <div class="send-s">次のレシートが貯まったら、また申請してください</div>
+    <button class="send-main" id="btnBackHome" type="button">ホームへ戻る</button>
   </div>
 </div>
 
@@ -268,29 +282,29 @@ input{font:inherit}
   <div class="sheet">
     <div class="grip"></div>
     <div class="sheet-img">🧾</div>
-    <p class="q"><span class="qn">1</span>だれの?</p>
+    <p class="q"><span class="qn">1</span>誰の分?</p>
     <div class="pick-row" id="pkPerson">
       <button class="pick" data-p="SOTARO" type="button">SOTARO</button>
       <button class="pick" data-p="KAEDE" type="button">KAEDE</button>
       <button class="pick" data-p="AYAKO" type="button">AYAKO</button>
     </div>
-    <p class="q"><span class="qn">2</span>なにで?</p>
+    <p class="q"><span class="qn">2</span>どこで?</p>
     <div class="pick-row" id="pkCat">
       <button class="pick big" data-c="M" type="button"><span class="i">🩺</span><span class="l">病院</span></button>
       <button class="pick big" data-c="P" type="button"><span class="i">💊</span><span class="l">薬局</span></button>
       <button class="pick big" data-c="D" type="button"><span class="i">🦷</span><span class="l">歯医者</span></button>
     </div>
-    <input class="cond-input" id="condInput" placeholder="なんの症状?(例: Hay fever)" hidden/>
-    <p class="q"><span class="qn">3</span>いくら?</p>
+    <input class="cond-input" id="condInput" placeholder="傷病名 / 症状(例: Hay fever)" hidden/>
+    <p class="q"><span class="qn">3</span>金額は?</p>
     <div class="amt-line">
       <span class="cur">A$</span>
       <input id="amtInput" inputmode="decimal" placeholder="0.00"/>
     </div>
     <div class="date-line">
-      <p class="q" style="margin:0"><span class="qn">4</span>いつ?</p>
+      <p class="q" style="margin:0"><span class="qn">4</span>受診日</p>
       <input type="date" id="dateInput"/>
     </div>
-    <button class="save-btn" id="btnSave" type="button" disabled>✓ ほぞん</button>
+    <button class="save-btn" id="btnSave" type="button" disabled>✓ 保存</button>
   </div>
 </div>
 
@@ -320,12 +334,12 @@ function selected(){ return unclaimed().filter(function(r){return !excluded[r.id
 
 /* ---- ウィザード ---- */
 var wizSteps=[
-  {q:"こんにちは 👋",sub:"さいしょに 4つだけ おしえてください",body:""},
+  {q:"こんにちは 👋",sub:"最初に4つだけ教えてください(1回だけ)",body:""},
   {q:"お名前は?",sub:"ローマ字で(保険証券のとおりに)",body:'<input placeholder="TARO YAMADA" autocapitalize="characters"/>'},
-  {q:"証券番号は?",sub:"MEDIPACK0802/ のつづきだけ",body:'<input placeholder="123456"/>'},
-  {q:"振込先は?",sub:"保険金を受けとる口座",body:'<input placeholder="BSB 013435"/><input placeholder="口座番号"/>'},
-  {q:"ご家族は?",sub:"病院にかかる人をタップで追加",body:'<div class="wiz-chips" id="wizChips"></div><div class="wiz-addrow"><input id="wizMem" placeholder="HANAKO" autocapitalize="characters"/><button class="wiz-add" id="wizAdd" type="button">追加</button></div>'},
-  {q:"できました 🎉",sub:"つぎからは 撮って送るだけ",body:""}
+  {q:"証券番号は?",sub:"MEDIPACK0802/ の続きだけ",body:'<input placeholder="123456"/>'},
+  {q:"振込先口座は?",sub:"保険金を受け取る口座",body:'<input placeholder="BSB 013435"/><input placeholder="口座番号"/>'},
+  {q:"ご家族は?",sub:"病院にかかる人を追加してください",body:'<div class="wiz-chips" id="wizChips"></div><div class="wiz-addrow"><input id="wizMem" placeholder="HANAKO" autocapitalize="characters"/><button class="wiz-add" id="wizAdd" type="button">追加</button></div>'},
+  {q:"設定完了 🎉",sub:"次からは、撮って送るだけです",body:""}
 ];
 var wizIdx=0;
 var wizMembers=["AYAKO"];
@@ -333,7 +347,7 @@ function renderWiz(){
   $("wizDots").innerHTML=wizSteps.map(function(_,i){ return '<span class="'+(i===wizIdx?"on":"")+'"></span>'; }).join("");
   var s=wizSteps[wizIdx];
   $("wizBody").innerHTML='<div class="wiz-q">'+s.q+'</div><div class="wiz-sub">'+s.sub+'</div>'+s.body;
-  $("wizNext").textContent = wizIdx===0?"はじめる" : (wizIdx===wizSteps.length-1?"つかいはじめる":"次へ");
+  $("wizNext").textContent = wizIdx===0?"はじめる" : (wizIdx===wizSteps.length-1?"使いはじめる":"次へ");
   if(wizIdx===4){
     renderWizChips();
     $("wizAdd").addEventListener("click",function(){
@@ -484,21 +498,21 @@ $("btnMake").addEventListener("click",function(){
   window.scrollTo(0,0);
 });
 $("btnSendBack").addEventListener("click",showClaimMain);
-$("btnShare").addEventListener("click",function(){
-  toast("(プロトタイプ: ここで共有シートが開きます)");
-  setTimeout(function(){
-    $("sendStep1").hidden=true;
-    $("sendStep2").hidden=false;
-    window.scrollTo(0,0);
-  },600);
+$("btnAutoMail").addEventListener("click",function(){
+  var sel=selected();
+  $("mailSubj").textContent="Claim Submission: AYAKO HAMA - 10/07/2026";
+  $("mailAttach").textContent="📎 Claim_AYAKO_HAMA.pdf(申請書+領収書"+sel.length+"枚)";
+  $("sendStep1").hidden=true;
+  $("sendStep2").hidden=false;
+  window.scrollTo(0,0);
 });
-$("btnLater").addEventListener("click",function(){
-  toast("あとで「申請」タブから送れます");
-  goTab("Home");
+$("btnShareAlt").addEventListener("click",function(){
+  toast("(プロトタイプ: 共有シートが開き、添付済みメールを自分で送れます)");
 });
-$("btnDone").addEventListener("click",function(){
+$("btnSendNow").addEventListener("click",function(){
   selected().forEach(function(r){ r.claimed=true; });
   excluded={};
+  toast("送信しました 📨");
   $("sendStep2").hidden=true;
   $("sendStep3").hidden=false;
   $("tbBadge").hidden=unclaimed().length===0;
