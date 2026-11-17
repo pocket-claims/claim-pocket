@@ -1647,7 +1647,7 @@ function act(a,el){
     case "discard": discard(d.id);break;
   }
 }
-function mailBody(){return["Dear Claims Team,","","Please find the attached documents for my insurance claim.","","Policyholder: "+(profile.name||"-"),"Policy Number: "+(profile.policyNo||"-"),"","Please let me know if you need any further information.","","Best regards,",profile.name||"-"].join("\n");}
+function mailBody(){return["Dear Claims Team,","","Please find the attached documents for my insurance claim.","","Policyholder: "+(profile.name||"-"),"Policy Number: "+(profile.policyNo||"-"),"","Please let me know if you need any further information.","","Best regards,",profile.name||"-"].join("\r\n");} // メールの改行は CRLF（iPhoneのメールは \n だけだと改行されない）
 function titleCase(n){return String(n||"").toLowerCase().replace(/(^|[\s\-])([a-z])/g,function(m,a,b){return a+b.toUpperCase();});}
 // 件名の例: "Medical Claim Form - Ryoma Hama Nov 2026" / 複数月なら "Oct-Nov 2026"
 function mailSubject(c){
