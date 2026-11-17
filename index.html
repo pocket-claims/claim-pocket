@@ -152,6 +152,9 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .steps{display:flex;flex-direction:column;gap:14px}
 .step{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
 .step .n{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--main);color:#fff;font-weight:800;align-items:center;justify-content:center;margin-right:8px}
+.step.off{opacity:.45}
+.step.done .n{background:var(--ok,#2E7D4F)}
+.step .btn{margin-top:10px}
 .step h3{font-size:19px;font-weight:800;display:flex;align-items:center;margin-bottom:8px}
 .step p{font-size:15px;color:var(--sub);margin-bottom:12px}
 .copyline{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:10px}
@@ -862,18 +865,22 @@ AFTER.claimSend=function(id){
 };
 
 /* ---------- メールの下書きを作る前の説明(iPhone) ---------- */
+var mpSaved={};
 SCREENS.mailPrep=function(id){
   var c=claims.find(function(x){return x.id===id;});
   if(!c)return SCREENS.home();
-  var subj=mailSubject(c);
+  var saved=!!mpSaved[id];
   var h=topBar("メールの下書きを作成")+'<div class="body"><h1 class="q">メールの下書きを<br>作ります</h1>'+
-    '<p class="hint">下の「メールを開く」を押すと、共有画面が開きます。</p><div class="steps">'+
-    '<div class="step"><h3><span class="n">1</span>「メール」を選ぶ</h3><p style="margin:0">共有画面に並んでいるアプリから、メールを選びます。申請書のPDFは<b>自動で添付</b>されます。</p></div>'+
-    '<div class="step"><h3><span class="n">2</span>宛先と件名を確認</h3><p>iPhoneの仕組み上、宛先と件名は自動で入らないことがあります。空いていたら、ここでコピーして貼り付けてください（宛先は自動でコピーされます）。</p>'+
-      '<div class="copyline"><code><small style="color:var(--sub);font-weight:700">宛先</small><br>'+esc(insurerEmail())+'</code><button type="button" data-act="copy" data-v="'+esc(insurerEmail())+'">コピー</button></div>'+
-      '<div class="copyline" style="margin-bottom:0"><code><small style="color:var(--sub);font-weight:700">件名</small><br>'+esc(subj)+'</code><button type="button" data-act="copy" data-v="'+esc(subj)+'">コピー</button></div></div>'+
-    '<div class="step"><h3><span class="n">3</span>送信する</h3><p style="margin:0">内容を確認して送信してください。</p></div>'+
-    '</div></div><div class="foot"><button class="btn main" type="button" data-act="openMail" data-id="'+esc(c.id)+'">✉️ メールを開く</button></div>';
+    '<p class="hint">上から順番に進めてください。</p><div class="steps">'+
+    '<div class="step'+(saved?' done':'')+'"><h3><span class="n">'+(saved?'✓':'1')+'</span>申請書ファイルを保存</h3>'+
+      '<p>共有画面が開いたら「<b>"ファイル"に保存</b>」→ 右上の「保存」を押します。</p>'+
+      '<button class="btn '+(saved?'ghost':'main')+'" type="button" data-act="mpSave" data-id="'+esc(c.id)+'">📥 '+(saved?'もう一度保存':'ファイルを保存')+'</button></div>'+
+    '<div class="step'+(saved?'':' off')+'"><h3><span class="n">2</span>メールを開く</h3>'+
+      '<p><b>宛先・件名・本文</b>が入ったメールが開きます。</p>'+
+      '<button class="btn main" type="button" data-act="mpMail" data-id="'+esc(c.id)+'"'+(saved?'':' disabled')+'>✉️ メールを開く</button></div>'+
+    '<div class="step'+(saved?'':' off')+'"><h3><span class="n">3</span>メールで申請書を添付して送信</h3>'+
+      '<p style="margin:0">本文の下の空いているところをタップ → キーボードの上の<b>書類のマーク</b>（ファイルを添付）→「最近使った項目」の<b>'+esc(c.filename)+'</b>を選んで、送信します。</p></div>'+
+    '</div></div>';
   return h;
 };
 
@@ -928,12 +935,8 @@ SCREENS.claimDone=function(arg){
   arg=arg||{};
   var msg;
   var extra='';
-  if(arg.how==="mail"&&arg.mobile){
-    msg='メールの下書きに申請書を添付しました。<br>宛先と件名が空いていたら、下の「コピー」を押して貼り付けてから送信してください。';
-    var subj=lastFinished?lastFinished.subject:"";
-    msg+='<div style="text-align:left;margin-top:14px">'+
-      '<div class="copyline"><code><small style="color:var(--sub);font-weight:700">宛先</small><br>'+esc(insurerEmail())+'</code><button type="button" data-act="copy" data-v="'+esc(insurerEmail())+'">コピー</button></div>'+
-      (subj?'<div class="copyline"><code><small style="color:var(--sub);font-weight:700">件名</small><br>'+esc(subj)+'</code><button type="button" data-act="copy" data-v="'+esc(subj)+'">コピー</button></div>':'')+'</div>';
+  if(arg.how==="mailto"){
+    msg='メールの下書きを開きました。<br><b>保存した申請書ファイルを添付して</b>、送信してください。<br><small>（本文の下をタップ → キーボードの上の書類のマーク →「最近使った項目」）</small>';
   }
   else if(arg.how==="mail")msg='申請書PDFを「ダウンロード」に保存し、メールの下書きを開きました。<br><b>PDFをメールに添付して</b>送信してください。';
   else msg='申請書ファイルを保存しました。<br>保険会社（'+esc(insurerEmail())+'）に送ってください。';
@@ -1659,6 +1662,10 @@ function act(a,el){
       else finishClaim(d.id,"mail");             // PC: そのまま保存＋メール作成画面
       break;
     case "openMail": finishClaim(d.id,"mail");break;
+    case "mpSave":
+      (async function(){var cs=claims.find(function(x){return x.id===d.id;});if(!cs||!cs.pdfBlob){toast("PDFが見つかりません");return;}
+        if(await savePdf(cs)){mpSaved[d.id]=true;render();}})();break;
+    case "mpMail": finishClaim(d.id,"mailto");break;
     case "discard": discard(d.id);break;
   }
 }
@@ -1688,6 +1695,10 @@ async function finishClaim(id,how){
   var ok=false;
   if(how==="save"){
     ok=await savePdf(c);
+  }else if(how==="mailto"){
+    // iPhone: ファイルは保存済み。宛先・件名・本文入りのメールを開く
+    location.href="mailto:"+encodeURIComponent(insurerEmail())+"?subject="+encodeURIComponent(mailSubject(c))+"&body="+encodeURIComponent(mailBody());
+    ok=true;
   }else{
     var file=null;try{file=new File([c.pdfBlob],c.filename,{type:"application/pdf"});}catch(e){}
     if(canShareFile(file)){
