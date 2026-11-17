@@ -780,8 +780,8 @@ SCREENS.claimSend=function(id){
      '<button class="btn main" type="button" data-act="finishSave" data-id="'+esc(c.id)+'">📥 申請書ファイルを保存して終了</button>'+
      '<div class="or">または</div>'+
      '<button class="btn main" type="button" data-act="finishMail" data-id="'+esc(c.id)+'">✉️ メールの下書きを作成</button>'+
-     '<div style="height:6px"></div>'+
-     '<button class="btn ghost danger" type="button" data-act="discard" data-id="'+esc(c.id)+'">🗑 この申請書を削除して作り直す</button></div>';
+     '<div class="or">または</div>'+
+     '<button class="btn ghost danger" type="button" data-act="discard" data-id="'+esc(c.id)+'" style="background:#E7E5E0;border-color:#E7E5E0">🗑 この申請書を削除して作り直す</button></div>';
   return h;
 };
 AFTER.claimSend=function(id){
