@@ -43,6 +43,7 @@ input{font:inherit;font-size:18px;color:inherit}
   position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 75%,rgba(246,244,239,0))}
 
 @media (max-height:740px){.foot.tall{gap:6px;padding-top:8px}.foot.tall .btn{min-height:48px;font-size:16px;padding-top:8px;padding-bottom:8px}.foot.tall .or{margin:0;font-size:12px}}
+#app{overflow-wrap:anywhere}
 h1.q{font-size:26px;line-height:1.35;font-weight:800;margin:8px 0 6px;letter-spacing:.01em}
 p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 
@@ -608,7 +609,7 @@ SCREENS.recCond=function(){
   var mine=hist.filter(function(x){return x.p===rec.person;}),others=hist.filter(function(x){return x.p!==rec.person;});
   var opts=mine.concat(others).slice(0,10);
   var h=topBar("レシートを記録",[3,REC_STEPS])+'<div class="body">'+readBanner()+'<h1 class="q">どんな症状・<br>理由でしたか？</h1><p class="hint">申請書の「傷病名」欄に入ります。ざっくりでOK（例：かぜ、腹痛、健診のフォロー）。</p>';
-  h+='<div class="field" id="fCond" style="margin-bottom:14px"><input id="inCond" type="text" placeholder="ここに入力" value="'+esc(rec.condition||"")+'" enterkeyhint="next" autocomplete="off"/><div class="err">入力するか、下から選んでください</div></div>';
+  h+='<div class="field" id="fCond" style="margin-bottom:14px"><input id="inCond" type="text" maxlength="60" placeholder="ここに入力" value="'+esc(rec.condition||"")+'" enterkeyhint="next" autocomplete="off"/><div class="err">入力するか、下から選んでください</div></div>';
   if(opts.length){
     h+='<div class="mhead" style="margin-top:4px"><span>前に入力した内容から選ぶ</span></div><div class="condlist">';
     opts.forEach(function(x){
@@ -956,7 +957,7 @@ function fld(id,label,val,opts){
   opts=opts||{};
   return '<div class="field" id="f_'+id+'"><label for="'+id+'">'+label+'</label><input id="'+id+'" value="'+esc(val||"")+'"'+
     (opts.type?' type="'+opts.type+'"':' type="text"')+(opts.im?' inputmode="'+opts.im+'"':'')+(opts.ph?' placeholder="'+esc(opts.ph)+'"':'')+
-    (opts.max?' data-max="'+opts.max+'"':'')+' autocomplete="off" autocapitalize="characters"/>'+
+    (opts.max?' data-max="'+opts.max+'"':' maxlength="'+(opts.len||80)+'"')+' autocomplete="off" autocapitalize="characters"/>'+
     (opts.ex?'<div class="ex">'+opts.ex+'</div>':'')+'<div class="err">'+(opts.err||'入力してください')+'</div></div>';
 }
 SCREENS.setup=function(step){
@@ -981,7 +982,7 @@ SCREENS.setup=function(step){
   }else if(step==="family"){
     h+='<h1 class="q">申請する家族の<br>名前を登録</h1><p class="hint">下の名前をローマ字で（例：TARO）。申請書の「名前」欄に入ります。</p><div id="memList">';
     members().forEach(function(m,i){h+='<div class="member"><span>👤 '+esc(m)+'</span><button type="button" data-act="delMem" data-i="'+i+'">削除</button></div>';});
-    h+='</div><div class="addrow"><input id="newMem" type="text" placeholder="名前を入力" autocapitalize="characters" autocomplete="off" enterkeyhint="done"/><button type="button" data-act="addMem">追加</button></div>';
+    h+='</div><div class="addrow"><input id="newMem" type="text" maxlength="25" placeholder="名前を入力" autocapitalize="characters" autocomplete="off" enterkeyhint="done"/><button type="button" data-act="addMem">追加</button></div>';
     h+='<p class="note" id="memMsg" style="color:var(--danger);font-weight:700"></p>';
   }else if(step==="sign"){
     h+='<h1 class="q">サインを<br>書いてください</h1><p class="hint">指で枠の中に書きます。申請書の署名欄に入ります。</p>';
@@ -1077,6 +1078,7 @@ function addMember(){
   var name=upAscii(inp.value).replace(/\s+/g," ").trim();msg.textContent="";
   if(!name){msg.textContent="名前を入力してください";return;}
   if(notRoman(name)){msg.textContent="ローマ字（英字）で入力してください（例：TARO）";return;}
+  if(name.length>25){msg.textContent="25文字以内で入力してください（下の名前だけでOK）";return;}
   if(members().some(function(m){return m.toLowerCase()===name.toLowerCase();})){msg.textContent=name+" はもう登録されています";return;}
   if(members().length>=MEMBER_MAX){msg.textContent="最大"+MEMBER_MAX+"人までです";return;}
   profile.members=members().concat([name]);saveProfile();
