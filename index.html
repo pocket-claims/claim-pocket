@@ -1758,7 +1758,7 @@ function openViewer(blob,type){
       var doc=await lib.getDocument({data:new Uint8Array(await ab(blob))}).promise;
       body.innerHTML="";
       var w=Math.min(window.innerWidth-16,900),ratio=window.devicePixelRatio||1;
-      for(var p=1;p<=Math.min(doc.numPages,maxPages||20);p++){
+      for(var p=1;p<=Math.min(doc.numPages,30);p++){
         if($("viewer").hidden)return;
         var pg=await doc.getPage(p),vp0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:w/vp0.width*ratio});
         var cv=document.createElement("canvas");cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);cv.style.width=w+"px";
