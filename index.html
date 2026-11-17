@@ -497,18 +497,39 @@ AFTER.recAmt=function(){var i=$("inAmt");setTimeout(function(){i.focus();},250);
   i.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();act("amtNext");}});};
 
 /* ---------- 記録: 日付 ---------- */
+var pickedDate=""; // 「ほかの日」で選んだ日(決定ボタンを押すまで仮)
+function jpDateW(iso){var p=String(iso).split("-");var d=new Date(+p[0],+p[1]-1,+p[2]);return jpDate(iso)+"（"+"日月火水木金土"[d.getDay()]+"）";}
 SCREENS.recDate=function(){
   var t=todayIso(),y=yesterdayIso();
   var other=rec.date&&rec.date!==t&&rec.date!==y;
+  if(other&&!pickedDate)pickedDate=rec.date;
   var h=topBar("レシートを記録",[5,REC_STEPS])+'<div class="body"><h1 class="q">受診した日は？</h1><p class="hint">レシートに書いてある日付です。</p><div class="choice">';
-  h+='<button class="opt'+(rec.date===t?' on':'')+'" type="button" data-act="setDate" data-v="'+t+'"><span class="em">☀️</span><span>今日<small>'+jpDate(t)+'</small></span></button>';
-  h+='<button class="opt'+(rec.date===y?' on':'')+'" type="button" data-act="setDate" data-v="'+y+'"><span class="em">🌙</span><span>きのう<small>'+jpDate(y)+'</small></span></button>';
-  h+='<label class="opt'+(other?' on':'')+'" style="position:relative"><span class="em">🔎</span><span>ほかの日を選ぶ<small id="otherLab">'+(other?jpDate(rec.date):'カレンダーから選ぶ')+'</small></span>'+
-     '<input id="inDate" type="date" max="'+t+'" value="'+esc(other?rec.date:"")+'" style="position:absolute;inset:0;opacity:0;width:100%;height:100%"/></label>';
+  h+='<button class="opt'+(rec.date===t&&!pickedDate?' on':'')+'" type="button" data-act="setDate" data-v="'+t+'"><span class="em">☀️</span><span>今日<small>'+jpDate(t)+'</small></span></button>';
+  h+='<button class="opt'+(rec.date===y&&!pickedDate?' on':'')+'" type="button" data-act="setDate" data-v="'+y+'"><span class="em">🌙</span><span>きのう<small>'+jpDate(y)+'</small></span></button>';
+  // label で囲まない(囲むとタップが2回伝わり、カレンダーがすぐ閉じる)
+  h+='<div class="opt'+(pickedDate?' on':'')+'" id="otherBox" style="position:relative"><span class="em">🔎</span><span>ほかの日を選ぶ<small id="otherLab">'+(pickedDate?jpDateW(pickedDate):'タップしてカレンダーから選ぶ')+'</small></span>'+
+     '<input id="inDate" type="date" max="'+t+'" value="'+esc(pickedDate||"")+'" aria-label="受診日" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;border:0;margin:0;padding:0;font-size:16px"/></div>';
   h+='</div></div>';
+  h+='<div class="foot" id="dateFoot"'+(pickedDate?'':' hidden')+'><button class="btn main" type="button" data-act="useDate">'+(pickedDate?esc(jpDateW(pickedDate)):'')+'にする</button></div>';
   return h;
 };
-AFTER.recDate=function(){var i=$("inDate");i.addEventListener("change",function(){if(i.value&&i.value<=todayIso()){if(rec.auto&&i.value!==rec.date)delete rec.auto.date;rec.date=i.value;nextAfter("recDate");}else if(i.value){toast("未来の日付は選べません");}});};
+AFTER.recDate=function(){
+  var i=$("inDate");
+  // パソコンのブラウザでは、欄のどこを押してもカレンダーが開くように
+  i.addEventListener("click",function(){try{if(i.showPicker)i.showPicker();}catch(e){}});
+  function upd(){
+    var v=i.value;
+    if(!v)return;
+    if(v>todayIso()){toast("未来の日付は選べません");return;}
+    pickedDate=v;
+    $("otherLab").textContent=jpDateW(v);
+    $("otherBox").classList.add("on");
+    document.querySelectorAll('[data-act="setDate"]').forEach(function(b){b.classList.remove("on");});
+    var f=$("dateFoot");f.hidden=false;f.querySelector("button").textContent=jpDateW(v)+"にする";
+  }
+  i.addEventListener("change",upd);
+  i.addEventListener("input",upd);
+};
 
 /* ---------- 記録: 確認 ---------- */
 SCREENS.recCheck=function(){
@@ -1129,7 +1150,7 @@ async function savePdf(c){
 /* ========================================================
    操作
    ======================================================== */
-function startRec(){rec={mode:"new",id:uid(),person:"",category:"",condition:"",amount:"",date:"",auto:{},blob:null,thumb:"",fileType:"",fileName:""};go("recType");}
+function startRec(){pickedDate="";rec={mode:"new",id:uid(),person:"",category:"",condition:"",amount:"",date:"",auto:{},blob:null,thumb:"",fileType:"",fileName:""};go("recType");}
 function nextAfter(step){
   // 確認画面から直しに来た場合は確認画面に戻る
   if(rec.fromCheck){
@@ -1182,8 +1203,12 @@ function act(a,el){
       var v=parseAmt($("inAmt").value,cur());
       if(!(v>0)){$("fAmt").classList.add("bad");$("amtErr").hidden=false;$("inAmt").focus();break;}
       if(rec.auto&&String(v)!==String(rec.amount))delete rec.auto.amount;rec.amount=String(v);nextAfter("recAmt");break;
-    case "setDate": if(rec.auto&&d.v!==rec.date)delete rec.auto.date;rec.date=d.v;nextAfter("recDate");break;
-    case "editStep": rec.fromCheck=true;go(d.step);break;
+    case "useDate":
+      if(!pickedDate)break;
+      if(rec.auto&&pickedDate!==rec.date)delete rec.auto.date;
+      rec.date=pickedDate;pickedDate="";nextAfter("recDate");break;
+    case "setDate": pickedDate="";if(rec.auto&&d.v!==rec.date)delete rec.auto.date;rec.date=d.v;nextAfter("recDate");break;
+    case "editStep": pickedDate="";rec.fromCheck=true;go(d.step);break;
     case "saveRec": saveRec();break;
     case "cancelRec": if(confirm("このレシートの記録をやめますか？")){rec=null;home();}break;
     case "delRec":
