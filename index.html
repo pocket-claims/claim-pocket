@@ -840,7 +840,7 @@ SCREENS.claimSend=function(id){
   if(c.pdfBlob&&c.pdfBlob.size>10*1048576)h+='<p class="note" style="color:var(--warn);font-weight:700">ファイルが大きめです（'+fmtMB(c.pdfBlob.size)+'）。メールで送れないときは、件数を減らして2回に分けてください。</p>';
   h+='</div><div class="foot"><div class="choose">内容はどうですか？</div>'+
      '<button class="btn main" type="button" data-act="claimOk" data-id="'+esc(c.id)+'">✅ OK</button>'+
-     '<p class="note" style="margin:-4px 0 0">OKを押すと、申請書ファイルを保存します</p>'+
+     (isMobile()?'<p class="note" style="margin:-4px 0 0;line-height:1.5">OKを押すと保存の画面が開きます。<br><b>「"ファイル"に保存」→「保存」</b>を押してください</p>':'<p class="note" style="margin:-4px 0 0">OKを押すと、申請書ファイルをダウンロードします</p>')+
      '<button class="btn ghost" type="button" data-act="claimFix" data-id="'+esc(c.id)+'">✏️ 修正する</button></div>';
   return h;
 };
