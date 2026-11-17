@@ -171,6 +171,11 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .cal-d.today{box-shadow:inset 0 0 0 2px var(--line)}
 .cal-d.on{background:var(--main);color:#fff;box-shadow:none}
 
+.help{margin-top:22px;padding:14px 16px;border-radius:14px;background:rgba(0,0,0,.03);color:var(--sub);font-size:14px;line-height:1.6}
+.help-t{font-weight:800;color:var(--ink);font-size:14px;margin-bottom:6px}
+.help ol{padding-left:1.3em;margin:0 0 6px}
+.help li{margin-bottom:4px}
+.help p{font-size:13px;margin:0}
 /* ---------- 署名 ---------- */
 .sig{position:relative;background:#fff;border:2px dashed var(--line);border-radius:var(--r);height:180px}
 .sig canvas{width:100%;height:100%;display:block;touch-action:none}
@@ -451,14 +456,17 @@ SCREENS.recPaper=function(){
 SCREENS.recPdf=function(){
   return topBar("メールで届いたレシート",[1,REC_STEPS])+
   '<div class="body"><h1 class="q">ファイルを選択</h1>'+
-  '<p class="hint">はじめに、メールに付いているPDFファイルを iPhone の「ファイル」に保存しておきます。</p>'+
-  '<div class="steps" style="margin-bottom:18px">'+
-  '<div class="step"><h3><span class="n">1</span>メールでPDFを開く</h3><p style="margin:0">メールアプリで、添付のPDFをタップします。</p></div>'+
-  '<div class="step"><h3><span class="n">2</span>「ファイル」に保存</h3><p style="margin:0">共有ボタン（□に↑）→「"ファイル"に保存」→ 右上の「保存」。</p></div>'+
-  '<div class="step"><h3><span class="n">3</span>下のボタンで選ぶ</h3><p style="margin:0">「最近使った項目」のいちばん上に、いま保存したPDFが出ます。</p></div>'+
-  '</div></div>'+
-  '<div class="foot"><button class="btn main" type="button" data-act="pickPdf">📄 ファイルを選択</button>'+
-  '<p class="note">パスワード付きのPDFのときは、選んだあとに別の方法をご案内します。</p></div>';
+  '<p class="hint">メールで届いたレシートのPDFファイルを選んでください。</p>'+
+  '<button class="btn main" type="button" data-act="pickPdf">📄 ファイルを選択</button>'+
+  '<div class="help">'+
+    '<div class="help-t">ファイルが見つからないときは</div>'+
+    '<ol>'+
+      '<li>メールアプリで、添付のPDFをタップして開く</li>'+
+      '<li>共有ボタン（□に↑）→「"ファイル"に保存」→ 右上の「保存」</li>'+
+      '<li>上の「ファイルを選択」を押すと、「最近使った項目」のいちばん上に出ます</li>'+
+    '</ol>'+
+    '<p>パスワード付きのPDFのときは、選んだあとに別の方法をご案内します。</p>'+
+  '</div></div>';
 };
 
 /* ---------- 記録: パスワード付きPDF ---------- */
