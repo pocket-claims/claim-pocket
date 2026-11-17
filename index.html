@@ -91,7 +91,8 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .brand .wm{font-size:36px;font-weight:800;letter-spacing:-.03em;line-height:1;color:#1C2A2E;display:flex;align-items:baseline;white-space:nowrap}
 .brand .wm .po{display:inline-block;width:.66em;height:.74em;margin:0 .02em;transform:translateY(.07em)}
 .brand .tag-line{font-size:13.5px;font-weight:700;color:var(--sub);margin-top:8px;letter-spacing:.02em}
-.gear{width:48px;height:48px;border-radius:50%;background:var(--card);border:1px solid var(--line);font-size:22px}
+.gear{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:64px;height:64px;padding:0 10px;border-radius:18px;background:var(--card);border:2px solid var(--main);color:var(--main);font-size:26px;line-height:1;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.gear small{font-size:13px;font-weight:800;letter-spacing:.05em}
 .status{margin:16px 20px 0;background:var(--card);border-radius:22px;padding:22px 20px;border:1px solid var(--line)}
 .status .lab{font-size:15px;color:var(--sub);font-weight:700}
 .status .big{font-size:40px;font-weight:800;line-height:1.2;margin-top:2px}
@@ -458,7 +459,7 @@ SCREENS.home=function(){
   fixHint=null;
   var ready=profileReady();
   var list=unclaimed(), sel=selectable(), ds=drafts();
-  var h='<div class="brand"><div><div class="wm" role="img" aria-label="Claim Pocket">Claim&nbsp;P'+LOGO_SVG+'cket</div><div class="tag-line">医療費の保険申請を、かんたんに</div></div>'+(ready?'<button class="gear" type="button" data-act="settings" aria-label="設定">⚙️</button>':'')+'</div>';
+  var h='<div class="brand"><div><div class="wm" role="img" aria-label="Claim Pocket">Claim&nbsp;P'+LOGO_SVG+'cket</div><div class="tag-line">医療費の保険申請を、かんたんに</div></div>'+(ready?'<button class="gear" type="button" data-act="settings" aria-label="設定">⚙️<small>設定</small></button>':'')+'</div>';
 
   // 1) 基本情報が未登録 → 登録ボタンだけ
   if(!ready){
