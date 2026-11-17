@@ -200,8 +200,12 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .spin{width:48px;height:48px;border-radius:50%;border:5px solid var(--line);border-top-color:var(--main);animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .viewer{position:fixed;inset:0;background:#000;z-index:950;display:flex;flex-direction:column}
-.viewer img{flex:1;object-fit:contain;width:100%;min-height:0}
-.viewer button{color:#fff;font-size:18px;font-weight:800;padding:18px}
+.viewer-bar{padding:calc(env(safe-area-inset-top,0px) + 6px) 10px 6px;display:flex;justify-content:flex-end;background:#000}
+.viewer-bar button{color:#000;background:#fff;font-size:18px;font-weight:800;padding:12px 20px;border-radius:999px}
+.viewer-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 8px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;align-items:center}
+.viewer-body img,.viewer-body canvas{max-width:100%;height:auto;background:#fff}
+.viewer-body iframe{width:100%;flex:1;border:0;background:#fff;min-height:80vh}
+.viewer-body .vmsg{color:#fff;font-weight:700;padding:30px;text-align:center}
 .note{font-size:14px;color:var(--sub);text-align:center;margin-top:6px}
 .total{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;padding:4px 2px}
 .total b{font-size:26px}
@@ -215,7 +219,7 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 <input type="file" id="filePdf" accept="application/pdf,.pdf" hidden/>
 
 <div class="loading" id="loading" hidden><div class="spin"></div><div id="loadingText">少々お待ちください</div><button type="button" id="loadingSkip" class="btn ghost" style="width:auto;min-height:48px;font-size:16px" hidden>スキップして自分で入力</button></div>
-<div class="viewer" id="viewer" hidden><img id="viewerImg" alt=""/><button type="button" id="viewerClose">✕ 閉じる</button></div>
+<div class="viewer" id="viewer" hidden><div class="viewer-bar"><button type="button" id="viewerClose">✕ 閉じる</button></div><div class="viewer-body" id="viewerBody"></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -481,7 +485,7 @@ SCREENS.recFileError=function(kind){
 /* ---------- 記録: 誰 ---------- */
 SCREENS.recWho=function(){
   var ms=members();
-  var h=topBar("レシートを記録",[2,REC_STEPS])+'<div class="body"><h1 class="q">だれの<br>受診・お薬ですか？</h1><p class="hint">1つ選んでください。</p><div class="choice">';
+  var h=topBar("レシートを記録",[2,REC_STEPS])+'<div class="body">'+readBanner()+'<h1 class="q">だれの<br>受診・お薬ですか？</h1><p class="hint">1つ選んでください。</p><div class="choice">';
   if(!ms.length){h+='<p class="hint">家族がまだ登録されていません。</p><button class="btn ghost" type="button" data-act="setupStep" data-step="family">家族を登録する</button>';}
   ms.forEach(function(m){h+='<button class="opt'+(rec.person===m?' on':'')+'" type="button" data-act="setPerson" data-v="'+esc(m)+'"><span class="em">👤</span><span>'+esc(m)+'</span></button>';});
   h+='</div></div>';
@@ -490,7 +494,7 @@ SCREENS.recWho=function(){
 
 /* ---------- 記録: 何 ---------- */
 SCREENS.recWhat=function(){
-  var h=topBar("レシートを記録",[3,REC_STEPS])+'<div class="body"><h1 class="q">何の<br>支払いですか？</h1><p class="hint">1つ選んでください。</p><div class="choice">';
+  var h=topBar("レシートを記録",[3,REC_STEPS])+'<div class="body">'+readBanner()+'<h1 class="q">何の<br>支払いですか？</h1><p class="hint">1つ選んでください。</p><div class="choice">';
   ["M","P","D"].forEach(function(k){var c=CATS[k];
     h+='<button class="opt'+(rec.category===k?' on':'')+'" type="button" data-act="setCat" data-v="'+k+'"><span class="em">'+c.em+'</span><span>'+c.name+'<small>'+c.sub+'</small></span></button>';});
   h+='</div></div>';
@@ -503,7 +507,7 @@ SCREENS.recCond=function(){
   receipts.forEach(function(r){if(r.condition&&r.person===rec.person)past[r.condition]=1;});
   receipts.forEach(function(r){if(r.condition)past[r.condition]=past[r.condition]||2;});
   var keys=Object.keys(past).sort(function(a,b){return past[a]-past[b];}).slice(0,8);
-  var h=topBar("レシートを記録",[3,REC_STEPS])+'<div class="body"><h1 class="q">どんな症状・<br>理由でしたか？</h1><p class="hint">申請書の「傷病名」欄に入ります。ざっくりでOK（例：かぜ、腹痛、健診のフォロー）。</p>';
+  var h=topBar("レシートを記録",[3,REC_STEPS])+'<div class="body">'+readBanner()+'<h1 class="q">どんな症状・<br>理由でしたか？</h1><p class="hint">申請書の「傷病名」欄に入ります。ざっくりでOK（例：かぜ、腹痛、健診のフォロー）。</p>';
   if(keys.length){h+='<div class="chips">';keys.forEach(function(k){h+='<button class="chip'+(rec.condition===k?' on':'')+'" type="button" data-act="setCondChip" data-v="'+esc(k)+'">'+esc(k)+'</button>';});h+='</div>';}
   h+='<div class="field" id="fCond"><input id="inCond" type="text" placeholder="ここに入力" value="'+esc(rec.condition||"")+'" enterkeyhint="next"/><div class="err">入力してください</div></div>';
   h+='</div><div class="foot"><button class="btn main" type="button" data-act="condNext">つぎへ</button></div>';
@@ -514,9 +518,9 @@ AFTER.recCond=function(){var i=$("inCond");if(i&&!i.value)setTimeout(function(){
 
 /* ---------- 記録: 金額 ---------- */
 SCREENS.recAmt=function(){
-  var h=topBar("レシートを記録",[4,REC_STEPS])+'<div class="body"><h1 class="q">支払った金額は？</h1><p class="hint">レシートの「合計」「Total」「Amount paid」の金額です。</p>';
+  var h=topBar("レシートを記録",[4,REC_STEPS])+'<div class="body">'+readBanner()+'<h1 class="q">支払った金額は？</h1><p class="hint">レシートの「合計」「Total」「Amount paid」の金額です。</p>';
   if(rec.thumb)h+='<img class="photo" src="'+rec.thumb+'" alt="レシート" data-act="viewImg" style="max-height:22vh"/>';
-  else if(rec.fileType==="pdf")h+='<button class="btn ghost" type="button" data-act="viewImg" style="margin-bottom:14px">📄 PDFを開いて金額を見る</button>';
+  else if(rec.fileType==="pdf")h+='<button class="btn ghost" type="button" data-act="viewImg" style="margin-bottom:14px">📄 PDFを見る（この画面に戻れます）</button>';
   h+='<div class="money" id="fAmt"><span>'+curMark(cur())+'</span><input id="inAmt" inputmode="'+(cur()==="JPY"?"numeric":"decimal")+'" placeholder="'+(cur()==="JPY"?"0":"0.00")+'" value="'+esc(rec.amount||"")+'" enterkeyhint="next" autocomplete="off"/></div>';
   h+='<p class="note" id="amtErr" hidden style="color:var(--danger);font-weight:700">金額を入力してください</p>';
   h+='</div><div class="foot"><button class="btn main" type="button" data-act="amtNext">つぎへ</button></div>';
@@ -551,7 +555,7 @@ function calHtml(){
 SCREENS.recDate=function(){
   if(!pickedDate&&rec.date)pickedDate=rec.date;
   if(!calMonth)calMonth=(pickedDate||todayIso()).slice(0,7);
-  var h=topBar("レシートを記録",[5,REC_STEPS])+'<div class="body"><h1 class="q">受診した日は？</h1><p class="hint">レシートに書いてある日付をタップしてください。</p>';
+  var h=topBar("レシートを記録",[5,REC_STEPS])+'<div class="body">'+readBanner()+'<h1 class="q">受診した日は？</h1><p class="hint">レシートに書いてある日付をタップしてください。</p>';
   h+='<div id="calBox">'+calHtml()+'</div></div>';
   h+='<div class="foot"><button class="btn main" type="button" data-act="useDate" id="dateBtn"'+(pickedDate?'':' disabled')+'>'+(pickedDate?esc(jpDateW(pickedDate))+'にする':'日付を選んでください')+'</button></div>';
   return h;
@@ -567,13 +571,15 @@ SCREENS.recCheck=function(){
   var editing=rec.mode==="edit";
   var claimed=editing&&rec.claimedAt;
   var h=topBar(editing?"レシートの内容":"内容の確認")+'<div class="body">';
+  h+=readBanner();
   h+='<h1 class="q">'+(editing?(claimed?"申請済みのレシート":"レシートの内容"):"この内容で<br>保存しますか？")+'</h1>';
   var au=rec.auto||{},anyAuto=!editing&&Object.keys(au).length>0;
   if(anyAuto)h+='<div class="alert info" style="margin:0 0 14px;width:100%"><span class="em">📖</span><span><b>レシートから読み取りました</b><span>「読取」の印がある項目は、レシートと合っているか見てください。</span></span></div>';
   else if(!editing)h+='<p class="hint">ちがうところはタップして直せます。</p>';
   function badge(k){return anyAuto&&au[k]?' <span class="tag old" style="vertical-align:middle;white-space:nowrap">読取</span>':'';}
   if(editing&&!claimed&&badFiles[rec.id]){var ft=FAIL_TEXT[badFiles[rec.id]]||FAIL_TEXT.pdf;h+='<div class="alert" style="margin:0 0 14px;width:100%;background:#FDE8E4;color:#7A1C10"><span class="em">⚠️</span><span><b>'+ft.t+'</b><span>'+ft.s+'</span></span></div>';}
-  if(rec.fileType==="pdf")h+='<button class="pdfmark" type="button" data-act="viewImg" style="width:100%;text-align:left"><span class="em">📄</span><span style="flex:1">'+esc(rec.fileName||"PDFファイル")+'</span><span class="ed" style="color:var(--main)">開く</span></button>';
+  if(rec.fileType==="pdf"&&rec.thumb)h+='<img class="photo" src="'+rec.thumb+'" alt="レシート" data-act="viewImg" style="max-height:22vh"/><p class="note" style="margin:-8px 0 12px">📄 '+esc(rec.fileName||"PDF")+'（タップで全体を表示）</p>';
+  else   if(rec.fileType==="pdf")h+='<button class="pdfmark" type="button" data-act="viewImg" style="width:100%;text-align:left"><span class="em">📄</span><span style="flex:1">'+esc(rec.fileName||"PDFファイル")+'</span><span class="ed" style="color:var(--main)">開く</span></button>';
   else if(rec.thumb)h+='<img class="photo" src="'+rec.thumb+'" alt="レシート" data-act="viewImg" style="max-height:22vh"/><p class="note" style="margin:-8px 0 12px">写真をタップすると大きく見られます</p>';
   var dis=claimed?' disabled':'';
   h+='<div class="sum">';
@@ -1084,20 +1090,43 @@ function readReceiptText(text,members,todayIso){
 }
 
 var TESS_URL="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
-var PDFJS_URL="https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.min.mjs";
-var PDFJS_WORKER="https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs";
+var PDFJS_URL="https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/legacy/build/pdf.min.mjs"; // 古めのiPhoneでも動く版
+var PDFJS_WORKER="https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/legacy/build/pdf.worker.min.mjs";
+function setLoadingText(t){var el=$("loadingText");if(el)el.textContent=t;}
 function loadScript(src){return new Promise(function(res,rej){var s=document.createElement("script");s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
 var tessWorker=null;
 async function ocrImage(blob){
   if(!window.Tesseract)await loadScript(TESS_URL);
-  if(!tessWorker)tessWorker=await Tesseract.createWorker("eng");
+  if(!tessWorker){
+    setLoadingText("文字を読む準備をしています（初回のみ・少し時間がかかります）");
+    tessWorker=await Tesseract.createWorker("eng",1,{logger:function(m){
+      if(!m||typeof m.progress!=="number")return;
+      var pct=Math.round(m.progress*100);
+      if(/load|initializ/i.test(m.status||""))setLoadingText("文字を読む準備をしています（初回のみ） "+pct+"%");
+      else if(/recogniz/i.test(m.status||""))setLoadingText("レシートを読み取っています "+pct+"%");
+    }});
+  }
+  setLoadingText("レシートを読み取っています");
   var r=await tessWorker.recognize(blob);
   return (r&&r.data&&r.data.text)||"";
 }
+var pdfjsLib=null;
+async function getPdfjs(){
+  if(!pdfjsLib){pdfjsLib=await import(PDFJS_URL);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;}
+  return pdfjsLib;
+}
+async function pdfThumb(doc){
+  // 1ページ目を画像にして、金額を確かめる画面で表示する
+  var pg=await doc.getPage(1),vp0=pg.getViewport({scale:1}),sc=Math.min(2,900/vp0.width),vp=pg.getViewport({scale:sc});
+  var cv=document.createElement("canvas");cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+  var cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);
+  await pg.render({canvas:cv,canvasContext:cx,viewport:vp}).promise;
+  return cv;
+}
 async function pdfText(blob){
-  var lib=await import(PDFJS_URL);
-  lib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+  var lib=await getPdfjs();
   var doc=await lib.getDocument({data:new Uint8Array(await ab(blob))}).promise;
+  try{var tcv=await pdfThumb(doc);rec.thumb=tcv.toDataURL("image/jpeg",0.7);}catch(te){console.warn(te);}
   var out=[];
   for(var p=1;p<=Math.min(doc.numPages,3);p++){
     var tc=await (await doc.getPage(p)).getTextContent(),rows={};
@@ -1114,27 +1143,44 @@ async function pdfText(blob){
   }
   return text;
 }
-var readSkip=null;
+var readSkip=null,readTimedOut=false;
 function untilSkip(promise,ms){
   return new Promise(function(res){
     var done=false;function fin(v){if(done)return;done=true;readSkip=null;res(v);}
-    readSkip=function(){fin(null);};setTimeout(function(){fin(null);},ms);
+    readTimedOut=false;readSkip=function(){fin(null);};setTimeout(function(){if(!done)readTimedOut=true;fin(null);},ms);
     promise.then(fin,function(e){console.warn(e);fin(null);});
   });
 }
 async function autoRead(){
   showLoading("レシートを読み取っています");$("loadingSkip").hidden=false;
+  var skipped=false,failed=false,text=null;
   try{
-    var text=await untilSkip(rec.fileType==="pdf"?pdfText(rec.blob):ocrImage(rec.blob),45000);
-    if(!text)return;
-    var r=readReceiptText(text,members(),todayIso());
-    rec.auto={};
-    if(r.person&&!rec.person){rec.person=r.person;rec.auto.person=1;}
-    if(r.category){rec.category=r.category;rec.auto.category=1;}
-    if(r.amount){rec.amount=String(parseAmt(String(r.amount),cur()));rec.auto.amount=1;}
-    if(r.date){rec.date=r.date;rec.auto.date=1;}
-  }catch(e){console.warn(e);}
+    var job=(rec.fileType==="pdf"?pdfText(rec.blob):ocrImage(rec.blob)).catch(function(e){console.warn(e);failed=true;return null;});
+    text=await untilSkip(job,90000);
+    if(text===null&&!failed)skipped=!readTimedOut;
+  }catch(e){console.warn(e);failed=true;}
   finally{$("loadingSkip").hidden=true;hideLoading();}
+  rec.auto={};
+  if(skipped){rec.readNote="";return;}
+  if(failed||text===null){
+    rec.readNote="自動読み取りができませんでした（通信状態か、お使いのiPhoneの対応状況によるものです）。お手数ですが、手で入力してください。";return;
+  }
+  var r=readReceiptText(text,members(),todayIso());
+  if(r.person&&!rec.person){rec.person=r.person;rec.auto.person=1;}
+  if(r.category){rec.category=r.category;rec.auto.category=1;}
+  if(r.amount){rec.amount=String(parseAmt(String(r.amount),cur()));rec.auto.amount=1;}
+  if(r.date){rec.date=r.date;rec.auto.date=1;}
+  var got=Object.keys(rec.auto);
+  if(!got.length)rec.readNote="レシートの文字を読み取れませんでした。お手数ですが、手で入力してください。";
+  else{
+    var miss=[];if(!rec.auto.amount)miss.push("金額");if(!rec.auto.date)miss.push("日付");if(!rec.person)miss.push("だれ");
+    rec.readNote=miss.length?"レシートから一部を読み取りました。"+miss.join("・")+"は読み取れなかったので、選んでください。":"";
+  }
+}
+function readBanner(){
+  if(!rec||!rec.readNote)return "";
+  var t=rec.readNote;rec.readNote="";
+  return '<div class="alert info" style="margin:0 0 14px;width:100%"><span class="em">📖</span><span><span>'+esc(t)+'</span></span></div>';
 }
 function nextMissing(){
   if(!rec.person)return "recWho";
@@ -1345,8 +1391,7 @@ function act(a,el){
       dbDel("receipts",rec.id).then(function(){receipts=receipts.filter(function(x){return x.id!==rec.id;});rec=null;toast("削除しました");stack=[{name:"home"}];cur_screen={name:"list"};render();});break;
     case "viewImg":
       if(!rec||!rec.blob)break;
-      if(rec.fileType==="pdf"){var pu=URL.createObjectURL(rec.blob);window.open(pu,"_blank");setTimeout(function(){URL.revokeObjectURL(pu);},60000);break;}
-      $("viewerImg").src=URL.createObjectURL(rec.blob);$("viewer").hidden=false;break;
+      openViewer(rec.blob,rec.fileType);break;
 
     case "list": delSel=null;go("list");break;
     case "delStart": delSel={};render();break;
@@ -1383,7 +1428,7 @@ function act(a,el){
     case "resume": go("claimSend",d.id);break;
     case "previewPdf":
       var c1=claims.find(function(x){return x.id===d.id;});if(!c1)break;
-      var u=URL.createObjectURL(c1.pdfBlob);window.open(u,"_blank");setTimeout(function(){URL.revokeObjectURL(u);},60000);break;
+      openViewer(c1.pdfBlob,"pdf");break;
     case "copy": copy(d.v);break;
     case "savePdf":
       var c2=claims.find(function(x){return x.id===d.id;});if(!c2||!c2.pdfBlob){toast("PDFが見つかりません");break;}
@@ -1406,6 +1451,39 @@ async function discard(id){
   toast("申請書を消しました");home();
 }
 
+
+/* ---------- アプリ内ビューア(別ページを開かない) ---------- */
+var viewerUrls=[];
+function openViewer(blob,type){
+  var body=$("viewerBody");body.innerHTML="";$("viewer").hidden=false;document.body.style.overflow="hidden";
+  if(type!=="pdf"){var u=URL.createObjectURL(blob);viewerUrls.push(u);var im=document.createElement("img");im.src=u;body.appendChild(im);return;}
+  body.innerHTML='<div class="vmsg">PDFを表示しています…</div>';
+  (async function(){
+    try{
+      var lib=await getPdfjs();
+      var doc=await lib.getDocument({data:new Uint8Array(await ab(blob))}).promise;
+      body.innerHTML="";
+      var w=Math.min(window.innerWidth-16,900),ratio=window.devicePixelRatio||1;
+      for(var p=1;p<=Math.min(doc.numPages,20);p++){
+        if($("viewer").hidden)return;
+        var pg=await doc.getPage(p),vp0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:w/vp0.width*ratio});
+        var cv=document.createElement("canvas");cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);cv.style.width=w+"px";
+        body.appendChild(cv);
+        await pg.render({canvas:cv,canvasContext:cv.getContext("2d"),viewport:vp}).promise;
+      }
+    }catch(e){
+      console.warn(e);
+      // 表示できないときは、ブラウザ標準の表示に切り替え(この画面の中で)
+      body.innerHTML="";var u=URL.createObjectURL(blob);viewerUrls.push(u);
+      var fr=document.createElement("iframe");fr.src=u;fr.title="PDF";body.appendChild(fr);
+    }
+  })();
+}
+function closeViewer(){
+  $("viewer").hidden=true;$("viewerBody").innerHTML="";document.body.style.overflow="";
+  viewerUrls.forEach(function(u){URL.revokeObjectURL(u);});viewerUrls=[];
+}
+
 /* ---------- 起動 ---------- */
 document.addEventListener("click",function(e){
   var el=e.target.closest("[data-act]");
@@ -1416,7 +1494,7 @@ $("fileCam").addEventListener("change",function(){var f=this.files&&this.files[0
 $("filePhoto").addEventListener("change",function(){var f=this.files&&this.files[0];this.value="";onFile(f);});
 $("filePdf").addEventListener("change",function(){var f=this.files&&this.files[0];this.value="";onFile(f,"pdf");});
 $("loadingSkip").addEventListener("click",function(){if(readSkip)readSkip();});
-$("viewerClose").addEventListener("click",function(){$("viewer").hidden=true;var s=$("viewerImg").src;$("viewerImg").src="";if(s&&s.indexOf("blob:")===0)URL.revokeObjectURL(s);});
+$("viewerClose").addEventListener("click",closeViewer);
 
 (async function init(){
   try{receipts=await dbAll("receipts");claims=await dbAll("claims");
