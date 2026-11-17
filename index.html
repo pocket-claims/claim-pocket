@@ -184,6 +184,15 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .condpick{flex:1;text-align:left;padding:14px 16px;font-size:17px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .condpick small{font-size:12px;font-weight:700;color:var(--sub);background:var(--bg);border-radius:6px;padding:2px 8px}
 .condx{width:48px;color:#A0A8AE;font-size:15px;border-left:1px solid var(--line)}
+.sec{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;margin:18px 0 8px}
+.sec .n{width:30px;height:30px;border-radius:50%;background:var(--main);color:#fff;font-size:16px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.pdfthumb{display:block;width:100%;padding:0;border:0;background:none;text-align:center;position:relative;margin-bottom:6px}
+.pdfthumb .pdfprev{max-height:380px;overflow:hidden;margin:0;position:relative}
+.pdfthumb .cap{display:block;margin-top:-44px;position:relative;padding:12px;font-size:15px;font-weight:800;color:var(--main);background:linear-gradient(to top,rgba(255,255,255,.97) 70%,rgba(255,255,255,0));border-radius:0 0 var(--r) var(--r)}
+.fixbox{background:var(--main-soft);border:1.5px solid var(--main);border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:16px;font-weight:800;color:var(--ink)}
+.fixbox small{font-size:13px;font-weight:600;color:var(--sub)}
+.redo{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);text-align:center}
+.redo p{font-size:14px;color:var(--sub);margin:0}
 .pdfprev{background:#E9E6DF;border-radius:var(--r);padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center;min-height:200px;margin-bottom:8px}
 .pdfprev canvas{max-width:100%;height:auto;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .pdfprev .vmsg{color:var(--sub);font-weight:700;padding:60px 10px;text-align:center}
@@ -439,7 +448,10 @@ var SCREENS={},AFTER={};
 var LOGO_SVG='<svg class="po" viewBox="0 0 24 27" aria-hidden="true"><rect x="6" y="0" width="12" height="13" rx="2" fill="#E9B872"/><path d="M1 9h22v6c0 6.6-4.9 12-11 12S1 21.6 1 15z" fill="#1E4D45"/></svg>';
 
 /* ---------- ホーム ---------- */
+var fixHint=null;
+function fixBox(t){return '<div class="fixbox">✏️ '+t+'<br><small>直したら、ホームの「申請書を作成する」からもう一度作ってください。</small></div>';}
 SCREENS.home=function(){
+  fixHint=null;
   var ready=profileReady();
   var list=unclaimed(), sel=selectable(), ds=drafts();
   var h='<div class="brand"><div><div class="wm" role="img" aria-label="Claim Pocket">Claim&nbsp;P'+LOGO_SVG+'cket</div><div class="tag-line">医療費の保険申請を、かんたんに</div></div>'+(ready?'<button class="gear" type="button" data-act="settings" aria-label="設定">⚙️</button>':'')+'</div>';
@@ -710,6 +722,7 @@ SCREENS.list=function(){
   var h='<div class="top"><button class="back" type="button" data-act="'+(mode?'delCancel':'back')+'" aria-label="もどる">‹</button><div class="top-title">'+(mode?'削除するレシートを選ぶ':'記録したレシート')+'</div>'+
     (receipts.length?'<button type="button" class="chip" data-act="'+(mode?'delCancel':'delStart')+'" style="padding:8px 14px">'+(mode?'やめる':'🗑 選んで削除')+'</button>':'')+'</div><div class="body">';
   if(!receipts.length)return h+'<div class="empty">まだレシートがありません。</div></div>';
+  if(fixHint==="rec"&&!mode)h+=fixBox("直したいレシートをタップしてください。");
   var bytes=dataBytes(),over=bytes>STORAGE_WARN_MB*1048576;
   h+='<div class="sizebar'+(over?' over':'')+'"><span>💾 保存しているデータ</span><b>合計 '+fmtMB(bytes)+'</b></div>';
   if(over&&!mode)h+='<p class="note" style="text-align:left;margin:-4px 0 10px;color:var(--warn);font-weight:700">大きくなってきました。申請書を作成済みのレシートは、右上の「選んで削除」から削除できます。</p>';
@@ -815,25 +828,37 @@ AFTER.claimPick=function(){var d=$("inDep");if(d)d.addEventListener("change",fun
 SCREENS.claimSend=function(id){
   var c=claims.find(function(x){return x.id===id;});
   if(!c)return SCREENS.home();
-  var mb=c.pdfBlob?(c.pdfBlob.size/1048576):0;
+  var n=c.receiptIds.length;
   var h=topBar("申請書をつくる",[2,3])+'<div class="body"><h1 class="q" style="white-space:nowrap">申請書ができました</h1>';
-  h+='<p class="hint">'+c.receiptIds.length+'件・'+esc(c.totalText||"")+'。名前・日付・金額が合っているか、下で確認してください。</p>';
-  h+='<p class="note" style="text-align:left;margin:0 0 6px;font-weight:700">📄 '+esc(c.filename)+'（'+(mb?fmtMB(c.pdfBlob.size):"?")+'）</p>';
-  h+='<div class="pdfprev" id="pdfPrev"><div class="vmsg">申請書を表示しています…</div></div>';
-  if(mb>10)h+='<p class="note" style="color:var(--warn);font-weight:700">ファイルが大きめです。メールで送れないときは、件数を減らして2回に分けてください。</p>';
-  h+='</div>';
-  h+='<div class="foot tall" style="background:var(--bg);box-shadow:0 -8px 16px rgba(0,0,0,.06);border-radius:18px 18px 0 0">'+
-     '<div class="choose">どちらか1つを選んでください</div>'+
-     '<button class="btn main" type="button" data-act="finishSave" data-id="'+esc(c.id)+'">📥&nbsp;<span><span class="nw">申請書ファイルを</span><span class="nw">保存して終了</span></span></button>'+
-     '<div class="or">または</div>'+
-     '<button class="btn main" type="button" data-act="finishMail" data-id="'+esc(c.id)+'">✉️ メールの下書きを作成</button>'+
-     '<div class="or">または</div>'+
-     '<button class="btn ghost danger" type="button" data-act="discard" data-id="'+esc(c.id)+'" style="background:#E7E5E0;border-color:#E7E5E0">🗑&nbsp;<span><span class="nw">この申請書を削除して</span><span class="nw">作り直す</span></span></button></div>';
+  h+='<p class="hint">'+n+'件・'+esc(c.totalText||"")+'。名前・日付・金額が合っているか確認してください。</p>';
+  h+='<button type="button" class="pdfthumb" data-act="viewClaim" data-id="'+esc(c.id)+'"><div class="pdfprev" id="pdfPrev"><div class="vmsg">申請書を表示しています…</div></div>'+
+     '<span class="cap">🔍 タップで大きく見る（申請書＋レシート'+n+'枚）</span></button>';
+  if(c.pdfBlob&&c.pdfBlob.size>10*1048576)h+='<p class="note" style="color:var(--warn);font-weight:700">ファイルが大きめです（'+fmtMB(c.pdfBlob.size)+'）。メールで送れないときは、件数を減らして2回に分けてください。</p>';
+  h+='</div><div class="foot"><div class="choose">内容はどうですか？</div>'+
+     '<button class="btn main" type="button" data-act="claimOk" data-id="'+esc(c.id)+'">✅ 内容OK</button>'+
+     '<button class="btn ghost" type="button" data-act="claimFix" data-id="'+esc(c.id)+'">✏️ 修正が必要</button></div>';
   return h;
+};
+/* ---------- 申請 3: 送り方 ---------- */
+SCREENS.claimHow=function(id){
+  var c=claims.find(function(x){return x.id===id;});
+  if(!c)return SCREENS.home();
+  return topBar("申請書をつくる",[3,3])+'<div class="body"><h1 class="q">申請書を<br>どうしますか？</h1><p class="hint">どちらか1つを選んでください。</p><div class="choice">'+
+     '<button class="opt" type="button" data-act="finishMail" data-id="'+esc(c.id)+'"><span class="em">✉️</span><span>メールの下書きを作成<small>申請書を添付したメールを作ります</small></span></button>'+
+     '<button class="opt" type="button" data-act="finishSave" data-id="'+esc(c.id)+'"><span class="em">📥</span><span>ファイルを保存して終了<small>あとで自分でメールに添付して送ります</small></span></button>'+
+     '</div></div>';
+};
+/* ---------- 申請: 修正が必要 ---------- */
+SCREENS.claimFix=function(id){
+  return topBar("修正が必要")+'<div class="body"><h1 class="q">どこを<br>直しますか？</h1><p class="hint">この申請書は削除されます。直したあと、もう一度「申請書を作成する」から作ってください。</p><div class="choice">'+
+     '<button class="opt" type="button" data-act="fixRec" data-id="'+esc(id)+'"><span class="em">🧾</span><span>レシートの内容<small>だれ・症状・金額・受診日</small></span></button>'+
+     '<button class="opt" type="button" data-act="fixProfile" data-id="'+esc(id)+'"><span class="em">👤</span><span>契約者・口座などの情報<small>名前・証券番号・連絡先・銀行口座・サイン</small></span></button>'+
+     '<button class="opt" type="button" data-act="fixPick" data-id="'+esc(id)+'"><span class="em">☑️</span><span>入れるレシートを選び直す<small>入れたいレシートが足りない・多い</small></span></button>'+
+     '</div></div>';
 };
 AFTER.claimSend=function(id){
   var c=claims.find(function(x){return x.id===id;});
-  if(c&&c.pdfBlob)renderPdfInto($("pdfPrev"),c.pdfBlob);
+  if(c&&c.pdfBlob)renderPdfInto($("pdfPrev"),c.pdfBlob,1);
 };
 
 /* ---------- メールの下書きを作る前の説明(iPhone) ---------- */
@@ -929,7 +954,7 @@ var SETUP_META={
   sign:{em:"✍️",t:"サイン",s:"申請書に入る署名"}
 };
 SCREENS.settings=function(){
-  var h=topBar("設定")+'<div class="body"><h1 class="q">設定</h1><p class="hint">申請書に入る情報です。タップして変更できます。</p><div class="setlist">';
+  var h=topBar("設定")+'<div class="body"><h1 class="q">設定</h1>'+(fixHint==="profile"?fixBox("直したい項目をタップしてください。"):'<p class="hint">申請書に入る情報です。タップして変更できます。</p>')+'<div class="setlist">';
   SETUP_ORDER.forEach(function(k){var m=SETUP_META[k],ok=setupChecks[k]();
     h+='<button type="button" data-act="setupStep" data-step="'+k+'"><span class="em">'+m.em+'</span><span class="t">'+m.t+'<small>'+m.s+'</small></span><span class="'+(ok?'ok':'ng')+'">'+(ok?'✓ 登録済み':'未登録')+'</span></button>';});
   h+='<button type="button" data-act="setupStep" data-step="other"><span class="em">🔧</span><span class="t">送り先・通貨<small>'+esc(insurerEmail())+' ・ '+cur()+'</small></span><span class="ok">変更</span></button>';
@@ -1606,6 +1631,17 @@ function act(a,el){
       cur_screen=stack.pop()||{name:"claimPick"};makePdf();break;
     case "replaceFile": rec.replacing=true;$("filePhoto").click();break;
     case "resume": go("claimSend",d.id);break;
+    case "claimOk": go("claimHow",d.id);break;
+    case "claimFix": go("claimFix",d.id);break;
+    case "fixRec": case "fixProfile": case "fixPick":
+      (async function(){
+        await dbDel("claims",d.id);claims=claims.filter(function(x){return x.id!==d.id;});
+        stack=[{name:"home"}];
+        if(a==="fixRec"){fixHint="rec";delSel=null;cur_screen={name:"list"};render();}
+        else if(a==="fixProfile"){fixHint="profile";cur_screen={name:"settings"};render();}
+        else{fixHint=null;cur_screen={name:"claimPick"};render();}
+      })();break;
+    case "viewClaim": (function(){var c=claims.find(function(x){return x.id===d.id;});if(c&&c.pdfBlob)openViewer(c.pdfBlob,"pdf");})();break;
     case "drafts": go("drafts");break;
     case "discardAll": discardAll();break;
     case "previewPdf":
@@ -1690,14 +1726,14 @@ async function discardAll(){
 
 
 /* ---------- PDFをページ内に表示 ---------- */
-async function renderPdfInto(box,blob){
+async function renderPdfInto(box,blob,maxPages){
   if(!box)return;
   try{
     var lib=await getPdfjs();
     var doc=await lib.getDocument({data:new Uint8Array(await ab(blob))}).promise;
     box.innerHTML="";
     var w=Math.max(200,box.clientWidth-2),ratio=window.devicePixelRatio||1;
-    for(var p=1;p<=Math.min(doc.numPages,20);p++){
+    for(var p=1;p<=Math.min(doc.numPages,maxPages||20);p++){
       if(!document.body.contains(box))return; // 画面を移動したら中止
       var pg=await doc.getPage(p),vp0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:w/vp0.width*ratio});
       var cv=document.createElement("canvas");cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);cv.style.width=w+"px";
@@ -1722,7 +1758,7 @@ function openViewer(blob,type){
       var doc=await lib.getDocument({data:new Uint8Array(await ab(blob))}).promise;
       body.innerHTML="";
       var w=Math.min(window.innerWidth-16,900),ratio=window.devicePixelRatio||1;
-      for(var p=1;p<=Math.min(doc.numPages,20);p++){
+      for(var p=1;p<=Math.min(doc.numPages,maxPages||20);p++){
         if($("viewer").hidden)return;
         var pg=await doc.getPage(p),vp0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:w/vp0.width*ratio});
         var cv=document.createElement("canvas");cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);cv.style.width=w+"px";
