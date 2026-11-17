@@ -768,14 +768,14 @@ SCREENS.claimSend=function(id){
   var mb=c.pdfBlob?(c.pdfBlob.size/1048576):0;
   var h=topBar("申請書をつくる",[2,3])+'<div class="body"><h1 class="q" style="white-space:nowrap">申請書ができました</h1>';
   h+='<p class="hint">'+c.receiptIds.length+'件・'+esc(c.totalText||"")+'。名前・日付・金額が合っているか、下で確認してください。</p>';
-  h+='<button type="button" class="linkbtn danger" data-act="discard" data-id="'+esc(c.id)+'">🗑 この申請書を削除して作り直す</button>';
   h+='<p class="note" style="text-align:left;margin:0 0 6px;font-weight:700">📄 '+esc(c.filename)+'（'+(mb?mb.toFixed(1):"?")+'MB）</p>';
   h+='<div class="pdfprev" id="pdfPrev"><div class="vmsg">申請書を表示しています…</div></div>';
   if(mb>10)h+='<p class="note" style="color:var(--warn);font-weight:700">ファイルが大きめです。メールで送れないときは、件数を減らして2回に分けてください。</p>';
   h+='</div>';
   h+='<div class="foot">'+
      '<button class="btn main" type="button" data-act="finishSave" data-id="'+esc(c.id)+'">📥 申請書ファイルを保存して終了</button>'+
-     '<button class="btn ghost" type="button" data-act="finishMail" data-id="'+esc(c.id)+'">✉️ メールの下書きを作成</button></div>';
+     '<button class="btn ghost" type="button" data-act="finishMail" data-id="'+esc(c.id)+'">✉️ メールの下書きを作成</button>'+
+     '<button class="btn text danger" type="button" data-act="discard" data-id="'+esc(c.id)+'" style="min-height:40px">🗑 この申請書を削除して作り直す</button></div>';
   return h;
 };
 AFTER.claimSend=function(id){
@@ -856,7 +856,6 @@ SCREENS.claimDone=function(arg){
     msg+='<div style="text-align:left;margin-top:14px">'+
       '<div class="copyline"><code><small style="color:var(--sub);font-weight:700">宛先</small><br>'+esc(insurerEmail())+'</code><button type="button" data-act="copy" data-v="'+esc(insurerEmail())+'">コピー</button></div>'+
       (subj?'<div class="copyline"><code><small style="color:var(--sub);font-weight:700">件名</small><br>'+esc(subj)+'</code><button type="button" data-act="copy" data-v="'+esc(subj)+'">コピー</button></div>':'')+'</div>';
-    if(lastFinished)extra='<button class="btn ghost" type="button" data-act="saveLast">📥 申請書ファイルも保存する</button>';
   }
   else if(arg.how==="mail")msg='申請書PDFを「ダウンロード」に保存し、メールの下書きを開きました。<br><b>PDFをメールに添付して</b>送信してください。';
   else msg='申請書ファイルを保存しました。<br>保険会社（'+esc(insurerEmail())+'）に送ってください。';
@@ -1552,7 +1551,6 @@ function act(a,el){
       else finishClaim(d.id,"mail");             // PC: そのまま保存＋メール作成画面
       break;
     case "openMail": finishClaim(d.id,"mail");break;
-    case "saveLast": if(lastFinished)savePdf(lastFinished);break;
     case "discard": discard(d.id);break;
   }
 }
@@ -1576,7 +1574,7 @@ function mailSubject(c){
 }
 // 保存またはメール下書き → 申請済みにして終了
 function canShareFile(file){return !!(isMobile()&&file&&navigator.canShare&&navigator.canShare({files:[file]}));}
-var lastFinished=null; // 完了画面で保存できるように、直前の申請書を一時的に持っておく
+var lastFinished=null; // 完了画面で件名を表示するため
 async function finishClaim(id,how){
   var c=claims.find(function(x){return x.id===id;});if(!c||!c.pdfBlob){toast("PDFが見つかりません");return;}
   var ok=false;
@@ -1601,7 +1599,7 @@ async function finishClaim(id,how){
   var now=new Date().toISOString();
   for(var i=0;i<receipts.length;i++){if(c.receiptIds.indexOf(receipts[i].id)>=0){receipts[i].claimedAt=now;receipts[i].claimId=c.id;await dbPut("receipts",receipts[i]);}}
   await dbDel("claims",c.id);claims=claims.filter(function(x){return x.id!==c.id;});
-  lastFinished={pdfBlob:c.pdfBlob,filename:c.filename,subject:mailSubject(c)};
+  lastFinished={subject:mailSubject(c)};
   stack=[];cur_screen={name:"claimDone",arg:{how:how,mobile:isMobile()}};render();
 }
 async function markSent(id){
