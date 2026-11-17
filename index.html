@@ -835,8 +835,8 @@ SCREENS.claimSend=function(id){
      '<span class="cap">🔍 タップで大きく見る（申請書＋レシート'+n+'枚）</span></button>';
   if(c.pdfBlob&&c.pdfBlob.size>10*1048576)h+='<p class="note" style="color:var(--warn);font-weight:700">ファイルが大きめです（'+fmtMB(c.pdfBlob.size)+'）。メールで送れないときは、件数を減らして2回に分けてください。</p>';
   h+='</div><div class="foot"><div class="choose">内容はどうですか？</div>'+
-     '<button class="btn main" type="button" data-act="claimOk" data-id="'+esc(c.id)+'">✅ 内容OK</button>'+
-     '<button class="btn ghost" type="button" data-act="claimFix" data-id="'+esc(c.id)+'">✏️ 修正が必要</button></div>';
+     '<button class="btn main" type="button" data-act="claimOk" data-id="'+esc(c.id)+'">✅ OK</button>'+
+     '<button class="btn ghost" type="button" data-act="claimFix" data-id="'+esc(c.id)+'">✏️ 修正する</button></div>';
   return h;
 };
 /* ---------- 申請 3: 送り方 ---------- */
@@ -850,7 +850,7 @@ SCREENS.claimHow=function(id){
 };
 /* ---------- 申請: 修正が必要 ---------- */
 SCREENS.claimFix=function(id){
-  return topBar("修正が必要")+'<div class="body"><h1 class="q">どこを<br>直しますか？</h1><p class="hint">この申請書は削除されます。直したあと、もう一度「申請書を作成する」から作ってください。</p><div class="choice">'+
+  return topBar("修正する")+'<div class="body"><h1 class="q">どこを<br>直しますか？</h1><p class="hint">この申請書は削除されます。直したあと、もう一度「申請書を作成する」から作ってください。</p><div class="choice">'+
      '<button class="opt" type="button" data-act="fixRec" data-id="'+esc(id)+'"><span class="em">🧾</span><span>レシートの内容<small>だれ・症状・金額・受診日</small></span></button>'+
      '<button class="opt" type="button" data-act="fixProfile" data-id="'+esc(id)+'"><span class="em">👤</span><span>契約者・口座などの情報<small>名前・証券番号・連絡先・銀行口座・サイン</small></span></button>'+
      '<button class="opt" type="button" data-act="fixPick" data-id="'+esc(id)+'"><span class="em">☑️</span><span>入れるレシートを選び直す<small>入れたいレシートが足りない・多い</small></span></button>'+
