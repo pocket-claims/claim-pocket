@@ -191,6 +191,9 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .choose{font-size:14px;font-weight:800;color:var(--sub);text-align:center;margin-bottom:-2px}
 .or{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;color:var(--sub);margin:-4px 0}
 .or:before,.or:after{content:"";flex:1;height:1px;background:var(--line)}
+.sizebar{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:4px 0 12px;font-size:15px;color:var(--sub);font-weight:700}
+.sizebar b{color:var(--ink);font-size:17px}
+.sizebar.over{background:var(--warn-soft);border-color:#F0D58A}
 /* ---------- 署名 ---------- */
 .sig{position:relative;background:#fff;border:2px dashed var(--line);border-radius:var(--r);height:180px}
 .sig canvas{width:100%;height:100%;display:block;touch-action:none}
@@ -374,19 +377,29 @@ function topBar(title,progress){
   return h;
 }
 
+/* ---------- 保存データの大きさ ---------- */
+var STORAGE_WARN_MB=50; // これを超えたら、削除をおすすめする
+function dataBytes(){
+  var n=0;
+  receipts.forEach(function(r){n+=(r.blob&&r.blob.size)||0;if(r.thumb)n+=Math.round(r.thumb.length*0.75);});
+  claims.forEach(function(c){n+=(c.pdfBlob&&c.pdfBlob.size)||0;});
+  return n;
+}
+function fmtMB(b){var mb=b/1048576;return mb<0.1?"0.1MB未満":(mb<10?mb.toFixed(1):Math.round(mb))+"MB";}
+
 /* ---------- 共通: 1件分の表示 ---------- */
 function itemHtml(r,mode){
   var c=CATS[r.category]||{em:"📄",name:""};
   var right='<div class="r">'+esc(fmtMoney(r.amount,cur()))+'</div>';
   var tag="";
   if(mode==="list"){
-    if(r.claimedAt)tag='<span class="tag done">申請済み</span>';
+    if(r.claimedAt)tag='<span class="tag done">申請書作成済み</span>';
     else if(badFiles[r.id])tag='<span class="tag todo" style="background:#FDE8E4;color:#B42318">要差し替え</span>';
     else if(daysSince(r.date)>=WARN_DAYS)tag='<span class="tag old">はやめに申請</span>';
-    else tag='<span class="tag todo">まだ</span>';
+    else tag='<span class="tag todo">申請書まだ</span>';
     right='<div class="r">'+esc(fmtMoney(r.amount,cur()))+'<br>'+tag+'</div>';
   }
-  if(mode==="sel"&&r.claimedAt)right='<div class="r">'+esc(fmtMoney(r.amount,cur()))+'<br><span class="tag done">申請済み</span></div>';
+  if(mode==="sel"&&r.claimedAt)right='<div class="r">'+esc(fmtMoney(r.amount,cur()))+'<br><span class="tag done">申請書作成済み</span></div>';
   return (mode==="sel"?'<span class="box">✓</span>':'')+
     '<span class="ic">'+c.em+'</span>'+
     '<span class="mid"><span class="t">'+esc(r.person||"?")+'</span>'+
@@ -419,6 +432,10 @@ SCREENS.home=function(){
   }else if(ds.length>1){
     h+='<button class="alert todo" type="button" data-act="drafts"><span class="em">📨</span><span><b>途中の申請書が'+ds.length+'件あります</b><span>タップして、保存するか削除してください</span></span></button>';
   }
+  var bytes=dataBytes(),nDoneAll=receipts.filter(function(r){return r.claimedAt;}).length;
+  if(bytes>STORAGE_WARN_MB*1048576&&nDoneAll){
+    h+='<button class="alert warn" type="button" data-act="cleanup"><span class="em">🧹</span><span><b>保存データが大きくなってきました（'+fmtMB(bytes)+'）</b><span>申請書を作成済みのレシート（'+nDoneAll+'件）を、そろそろ削除しましょう → タップ</span></span></button>';
+  }
   var bads=list.filter(function(r){return badFiles[r.id];});
   if(bads.length){
     h+='<button class="alert todo" type="button" data-act="openRec" data-id="'+esc(bads[0].id)+'" style="background:#FDE8E4;color:#7A1C10"><span class="em">⚠️</span><span><b>差し替えが必要なレシートがあります（'+bads.length+'件）</b><span>'+esc(bads[0].person)+'・'+esc(jpDate(bads[0].date))+'・'+esc(fmtMoney(bads[0].amount,cur()))+' → タップして写真に差し替え</span></span></button>';
@@ -434,7 +451,7 @@ SCREENS.home=function(){
 
   // 3) レシートが1件以上 → 申請書を作成する
   if(receipts.length){
-    var sub=sel.length?'未申請 '+sel.length+'件・'+esc(fmtMoney(sumOf(sel),cur()))
+    var sub=sel.length?'申請書がまだのレシート '+sel.length+'件・'+esc(fmtMoney(sumOf(sel),cur()))
       :(ds.length?'上のお知らせから続けてください':'申請していないレシートはありません');
     h+='<button class="hero send" type="button" data-act="claim"'+(sel.length?'':' disabled')+'><span class="em">✉️</span><span><b>申請書を作成する</b><span>'+sub+'</span></span></button>';
   }
@@ -622,7 +639,7 @@ SCREENS.recCheck=function(){
   var claimed=editing&&rec.claimedAt;
   var h=topBar(editing?"レシートの内容":"内容の確認")+'<div class="body">';
   h+=readBanner();
-  h+='<h1 class="q">'+(editing?(claimed?"申請済みのレシート":"レシートの内容"):"この内容で<br>保存しますか？")+'</h1>';
+  h+='<h1 class="q">'+(editing?(claimed?"申請書を作成済みのレシート":"レシートの内容"):"この内容で<br>保存しますか？")+'</h1>';
   var au=rec.auto||{},anyAuto=!editing&&Object.keys(au).length>0;
   if(anyAuto)h+='<div class="alert info" style="margin:0 0 14px;width:100%"><span class="em">📖</span><span><b>レシートから読み取りました</b><span>「読取」の印がある項目は、レシートと合っているか見てください。</span></span></div>';
   else if(!editing)h+='<p class="hint">ちがうところはタップして直せます。</p>';
@@ -639,7 +656,7 @@ SCREENS.recCheck=function(){
   h+='<button class="row" type="button" data-act="editStep" data-step="recAmt"'+dis+'><span class="k">金額</span><span class="v">'+esc(fmtMoney(rec.amount,cur()))+badge('amount')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
   h+='<button class="row" type="button" data-act="editStep" data-step="recDate"'+dis+'><span class="k">受診日</span><span class="v">'+esc(jpDate(rec.date))+' <small style="color:var(--sub);font-weight:600">('+esc(isoToAu(rec.date))+')</small>'+badge('date')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
   h+='</div>';
-  if(claimed)h+='<p class="note">申請済みのため変更できません。</p>';
+  if(claimed)h+='<p class="note">申請書を作成済みのため変更できません。</p>';
   h+='</div><div class="foot">';
   var isBad=editing&&!claimed&&badFiles[rec.id];
   if(isBad)h+='<button class="btn main" type="button" data-act="replaceFile">🖼️ レシートの写真を差し替える</button>';
@@ -666,10 +683,13 @@ SCREENS.list=function(){
   var h='<div class="top"><button class="back" type="button" data-act="'+(mode?'delCancel':'back')+'" aria-label="もどる">‹</button><div class="top-title">'+(mode?'削除するレシートを選ぶ':'記録したレシート')+'</div>'+
     (receipts.length?'<button type="button" class="chip" data-act="'+(mode?'delCancel':'delStart')+'" style="padding:8px 14px">'+(mode?'やめる':'🗑 選んで削除')+'</button>':'')+'</div><div class="body">';
   if(!receipts.length)return h+'<div class="empty">まだレシートがありません。</div></div>';
+  var bytes=dataBytes(),over=bytes>STORAGE_WARN_MB*1048576;
+  h+='<div class="sizebar'+(over?' over':'')+'"><span>💾 保存しているデータ</span><b>合計 '+fmtMB(bytes)+'</b></div>';
+  if(over&&!mode)h+='<p class="note" style="text-align:left;margin:-4px 0 10px;color:var(--warn);font-weight:700">大きくなってきました。申請書を作成済みのレシートは、右上の「選んで削除」から削除できます。</p>';
   if(mode){
     var nDone=receipts.filter(function(r){return r.claimedAt;}).length;
     h+='<div class="chips" style="margin-bottom:6px">'+
-      (nDone?'<button class="chip" type="button" data-act="delPick" data-v="done">申請済みをすべて（'+nDone+'）</button>':'')+
+      (nDone?'<button class="chip" type="button" data-act="delPick" data-v="done">申請書作成済みをすべて（'+nDone+'）</button>':'')+
       '<button class="chip" type="button" data-act="delPick" data-v="all">すべて（'+receipts.length+'）</button>'+
       (delCount()?'<button class="chip" type="button" data-act="delPick" data-v="none">選択を解除</button>':'')+'</div>';
   }
@@ -697,7 +717,7 @@ async function deleteSelected(){
   var set={};ids.forEach(function(i){set[i]=1;});
   var hitDrafts=drafts().filter(function(c){return (c.receiptIds||[]).some(function(id){return set[id];});});
   var msg=ids.length+"件のレシートを削除します。\n削除すると元に戻せません。";
-  if(hitDrafts.length)msg+="\n\n※「申請済み」にしていない申請書に入っているレシートが含まれるため、その申請書("+hitDrafts.length+"件)も消えます。";
+  if(hitDrafts.length)msg+="\n\n※途中の申請書に入っているレシートが含まれるため、その申請書("+hitDrafts.length+"件)も消えます。";
   if(!confirm(msg))return;
   showLoading("削除しています");
   try{
@@ -815,7 +835,7 @@ SCREENS.drafts=function(){
   var ds=drafts().slice().sort(function(a,b){return a.createdAt<b.createdAt?1:-1;});
   if(!ds.length)return SCREENS.home();
   var h=topBar("途中の申請書")+'<div class="body"><h1 class="q">途中の申請書</h1>'+
-    '<p class="hint">保存もメールもしていない申請書です。使うものは「開く」、いらないものは「削除」してください。削除しても、レシートは消えずに「未申請」に戻ります。</p>';
+    '<p class="hint">保存もメールもしていない申請書です。使うものは「開く」、いらないものは「削除」してください。削除しても、レシートは消えずに「申請書がまだ」の状態に戻ります。</p>';
   ds.forEach(function(c){
     var d=new Date(c.createdAt);
     h+='<div class="step" style="margin-bottom:12px"><h3 style="margin-bottom:2px">'+(d.getMonth()+1)+'月'+d.getDate()+'日に作成</h3>'+
@@ -867,7 +887,7 @@ SCREENS.claimDone=function(arg){
   else msg='申請書ファイルを保存しました。<br>保険会社（'+esc(insurerEmail())+'）に送ってください。';
   return '<div class="body" style="justify-content:center;text-align:center"><div class="done-mark">🎉</div><h1 class="q">おつかれさまでした</h1>'+
     '<p class="hint">'+msg+'</p>'+
-    '<p class="hint" style="font-size:14px">このレシートは「申請済み」になりました。保険会社から「Claim Acknowledgement」のメールが届けば受付完了です。レシートの原本は、お金が振り込まれるまで保管してください。</p></div>'+
+    '<p class="hint" style="font-size:14px">このレシートは「申請書作成済み」になりました。保険会社から「Claim Acknowledgement」のメールが届けば受付完了です。レシートの原本は、お金が振り込まれるまで保管してください。</p></div>'+
     '<div class="foot">'+extra+'<button class="btn main" type="button" data-act="home">ホームにもどる</button></div>';
 };
 
@@ -1517,6 +1537,9 @@ function act(a,el){
         if(v==="all"||(v==="done"&&r.claimedAt)||(v.indexOf("m:")===0&&monthKey(r.date)===v.slice(2)))delSel[r.id]=true;});
       render();window.scrollTo(0,sy2);break;
     case "delRun": deleteSelected();break;
+    case "cleanup":
+      delSel={};receipts.forEach(function(r){if(r.claimedAt)delSel[r.id]=true;});
+      go("list");break;
     case "openRec":
       var r=receipts.find(function(x){return x.id===d.id;});if(!r)break;
       rec={mode:"edit",id:r.id,person:r.person,category:r.category,condition:r.condition||"",amount:r.amount,date:r.date,
@@ -1548,7 +1571,6 @@ function act(a,el){
     case "savePdf":
       var c2=claims.find(function(x){return x.id===d.id;});if(!c2||!c2.pdfBlob){toast("PDFが見つかりません");break;}
       savePdf(c2);break;
-    case "markSent": markSent(d.id);break;
     case "finishSave": finishClaim(d.id,"save");break;
     case "finishMail":
       var cm=claims.find(function(x){return x.id===d.id;});var fm=null;
@@ -1578,7 +1600,7 @@ function mailSubject(c){
   }
   return "Medical Claim Form - "+titleCase(profile.name)+" "+lab;
 }
-// 保存またはメール下書き → 申請済みにして終了
+// 保存またはメール下書き → 「申請書作成済み」にして終了
 function canShareFile(file){return !!(isMobile()&&file&&navigator.canShare&&navigator.canShare({files:[file]}));}
 var lastFinished=null; // 完了画面で件名を表示するため
 async function finishClaim(id,how){
@@ -1608,23 +1630,15 @@ async function finishClaim(id,how){
   lastFinished={subject:mailSubject(c)};
   stack=[];cur_screen={name:"claimDone",arg:{how:how,mobile:isMobile()}};render();
 }
-async function markSent(id){
-  var c=claims.find(function(x){return x.id===id;});if(!c)return;
-  if(!confirm("保険会社に送りましたか？\n「OK」で申請済みにします。\n\n※ 容量を節約するため、アプリの中の申請書PDFは削除されます（保存したPDFはそのまま残ります）。"))return;
-  var now=new Date().toISOString();
-  for(var i=0;i<receipts.length;i++){if(c.receiptIds.indexOf(receipts[i].id)>=0){receipts[i].claimedAt=now;receipts[i].claimId=c.id;await dbPut("receipts",receipts[i]);}}
-  await dbDel("claims",c.id);claims=claims.filter(function(x){return x.id!==c.id;});
-  stack=[];cur_screen={name:"claimDone"};render();
-}
 async function discard(id){
-  if(!confirm("この申請書を削除しますか？\n（レシートは消えずに「未申請」に戻ります）"))return;
+  if(!confirm("この申請書を削除しますか？\n（レシートは消えずに「申請書がまだ」の状態に戻ります）"))return;
   await dbDel("claims",id);claims=claims.filter(function(x){return x.id!==id;});
   toast("申請書を削除しました");
   if(drafts().length>1){stack=[{name:"home"}];cur_screen={name:"drafts"};render();}else home();
 }
 async function discardAll(){
   var ds=drafts();if(!ds.length)return;
-  if(!confirm("途中の申請書"+ds.length+"件をすべて削除しますか？\n（レシートは消えずに「未申請」に戻ります）"))return;
+  if(!confirm("途中の申請書"+ds.length+"件をすべて削除しますか？\n（レシートは消えずに「申請書がまだ」の状態に戻ります）"))return;
   for(var i=0;i<ds.length;i++)await dbDel("claims",ds[i].id);
   claims=claims.filter(function(c){return c.status!=="draft";});
   toast("途中の申請書を削除しました");home();
@@ -1698,7 +1712,7 @@ $("viewerClose").addEventListener("click",closeViewer);
 
 (async function init(){
   try{receipts=await dbAll("receipts");claims=await dbAll("claims");
-    // 申請済みの申請書PDFは容量を使うので削除(レシートの「申請済み」はそのまま)
+    // 作成済みの申請書PDFは容量を使うので削除(レシートの「申請書作成済み」はそのまま)
     var done=claims.filter(function(c){return c.status!=="draft";});
     for(var k=0;k<done.length;k++)await dbDel("claims",done[k].id);
     claims=claims.filter(function(c){return c.status==="draft";});
