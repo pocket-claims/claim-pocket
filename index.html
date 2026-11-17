@@ -839,9 +839,9 @@ SCREENS.claimSend=function(id){
   h+='<button type="button" class="pdfthumb" data-act="viewClaim" data-id="'+esc(c.id)+'"><div class="pdfprev" id="pdfPrev"><div class="vmsg">申請書を表示しています…</div></div>'+
      '<span class="cap">🔍 タップで大きく見る（申請書＋レシート'+n+'枚）</span></button>';
   if(c.pdfBlob&&c.pdfBlob.size>10*1048576)h+='<p class="note" style="color:var(--warn);font-weight:700">ファイルが大きめです（'+fmtMB(c.pdfBlob.size)+'）。メールで送れないときは、件数を減らして2回に分けてください。</p>';
-  h+='</div><div class="foot"><div class="choose">内容はどうですか？</div>'+
-     '<button class="btn main" type="button" data-act="claimOk" data-id="'+esc(c.id)+'">✅ OK</button>'+
-     (isMobile()?'<p class="note" style="margin:-4px 0 0;line-height:1.5">OKを押すと保存の画面が開きます。<br><b>「"ファイル"に保存」→「保存」</b>を押してください</p>':'<p class="note" style="margin:-4px 0 0">OKを押すと、申請書ファイルをダウンロードします</p>')+
+  h+='</div><div class="foot"><div class="choose">内容が合っていたら</div>'+
+     '<button class="btn main" type="button" data-act="claimOk" data-id="'+esc(c.id)+'">📥 ファイルに保存する</button>'+
+     (isMobile()?'<p class="note" style="margin:-4px 0 0;line-height:1.5">次の画面で<b>「"ファイル"に保存」→「保存」</b>を押します</p>':'<p class="note" style="margin:-4px 0 0">「ダウンロード」フォルダに保存されます</p>')+
      '<button class="btn ghost" type="button" data-act="claimFix" data-id="'+esc(c.id)+'">✏️ 修正する</button></div>';
   return h;
 };
