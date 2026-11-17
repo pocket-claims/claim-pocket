@@ -775,7 +775,7 @@ SCREENS.claimSend=function(id){
   h+='<div class="foot">'+
      '<button class="btn main" type="button" data-act="finishSave" data-id="'+esc(c.id)+'">📥 申請書ファイルを保存して終了</button>'+
      '<button class="btn ghost" type="button" data-act="finishMail" data-id="'+esc(c.id)+'">✉️ メールの下書きを作成</button>'+
-     '<button class="btn text danger" type="button" data-act="discard" data-id="'+esc(c.id)+'" style="min-height:40px">🗑 この申請書を削除して作り直す</button></div>';
+     '<button class="btn ghost danger" type="button" data-act="discard" data-id="'+esc(c.id)+'">🗑 この申請書を削除して作り直す</button></div>';
   return h;
 };
 AFTER.claimSend=function(id){
