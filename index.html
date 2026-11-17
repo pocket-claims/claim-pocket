@@ -525,7 +525,7 @@ SCREENS.recPaper=function(){
   '<div class="body"><h1 class="q">レシートを<br>撮ってください</h1><p class="hint">明るい場所で、金額と日付が見えるように全体を写します。</p>'+
   '<div class="choice">'+
   '<button class="opt on" type="button" data-act="pickCam"><span class="em">📷</span><span>カメラで撮る</span></button>'+
-  '<button class="opt" type="button" data-act="pickPhoto"><span class="em">🖼️</span><span>もう撮った写真から選ぶ</span></button>'+
+  '<button class="opt" type="button" data-act="pickPhoto"><span class="em">🖼️</span><span>フォトライブラリから選ぶ</span></button>'+
   '</div></div>';
 };
 
@@ -551,14 +551,14 @@ SCREENS.recFileError=function(kind){
   var shotSteps='<div class="steps">'+
     '<div class="step"><h3><span class="n">1</span>PDFを開く</h3><p style="margin:0">メールのPDFをタップして開きます'+(kind==="pw"?'（パスワードは多くの場合、生年月日の「日日月月」4けた）':'')+'。</p></div>'+
     '<div class="step"><h3><span class="n">2</span>スクリーンショットを撮る</h3><p style="margin:0">金額と日付が見える状態で、サイドボタンと音量ボタン（上）を同時に押します。</p></div>'+
-    '<div class="step"><h3><span class="n">3</span>写真から選ぶ</h3><p style="margin:0">下のボタンを押して、いま撮ったスクリーンショットを選びます。</p></div></div>';
+    '<div class="step"><h3><span class="n">3</span>フォトライブラリから選ぶ</h3><p style="margin:0">下のボタンを押して、フォトライブラリから、いま撮ったスクリーンショットを選びます。</p></div></div>';
   var t={
     pw:{h:"このPDFは<br>パスワード付きです",p:"パスワードがかかったPDFは、申請書に入れられません。画面を撮って、写真として記録しましょう。",body:shotSteps,
         foot:'<button class="btn main" type="button" data-act="pickPhoto">🖼️ スクリーンショットを選ぶ</button>'},
     pdf:{h:"このPDFは<br>使えません",p:"ファイルが壊れているか、特殊な形式のため、申請書に入れられません。画面を撮って、写真として記録しましょう。",body:shotSteps,
         foot:'<button class="btn main" type="button" data-act="pickPhoto">🖼️ スクリーンショットを選ぶ</button>'},
     img:{h:"この写真は<br>読み込めません",p:"写真のデータが壊れているか、対応していない形式です。もう一度撮るか、別の写真を選んでください。",body:"",
-        foot:'<button class="btn main" type="button" data-act="pickCam">📷 カメラで撮る</button><button class="btn ghost" type="button" data-act="pickPhoto">🖼️ 写真から選ぶ</button>'},
+        foot:'<button class="btn main" type="button" data-act="pickCam">📷 カメラで撮る</button><button class="btn ghost" type="button" data-act="pickPhoto">🖼️ フォトライブラリから選ぶ</button>'},
     offline:{h:"PDFを<br>確認できませんでした",p:"インターネットにつながっていないため、PDFが使えるか確認できませんでした。つながる場所で、もう一度選んでください。",body:"",
         foot:'<button class="btn main" type="button" data-act="pickPdf">📄 もう一度ファイルを選択</button>'}
   }[kind]||{};
