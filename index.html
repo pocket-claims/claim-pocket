@@ -839,16 +839,18 @@ SCREENS.claimSend=function(id){
   if(c.pdfBlob&&c.pdfBlob.size>10*1048576)h+='<p class="note" style="color:var(--warn);font-weight:700">ファイルが大きめです（'+fmtMB(c.pdfBlob.size)+'）。メールで送れないときは、件数を減らして2回に分けてください。</p>';
   h+='</div><div class="foot"><div class="choose">内容はどうですか？</div>'+
      '<button class="btn main" type="button" data-act="claimOk" data-id="'+esc(c.id)+'">✅ OK</button>'+
+     '<p class="note" style="margin:-4px 0 0">OKを押すと、申請書ファイルを保存します</p>'+
      '<button class="btn ghost" type="button" data-act="claimFix" data-id="'+esc(c.id)+'">✏️ 修正する</button></div>';
   return h;
 };
-/* ---------- 申請 3: 送り方 ---------- */
-SCREENS.claimHow=function(id){
+/* ---------- 申請 3: 保存できた → メールどうする ---------- */
+SCREENS.claimSaved=function(id){
   var c=claims.find(function(x){return x.id===id;});
   if(!c)return SCREENS.home();
-  return topBar("申請書をつくる",[3,3])+'<div class="body"><h1 class="q">申請書を<br>どうしますか？</h1><p class="hint">どちらか1つを選んでください。</p><div class="choice">'+
-     '<button class="opt" type="button" data-act="finishMail" data-id="'+esc(c.id)+'"><span class="em">✉️</span><span>メールの下書きを作成<small>申請書を添付したメールを作ります</small></span></button>'+
-     '<button class="opt" type="button" data-act="finishSave" data-id="'+esc(c.id)+'"><span class="em">📥</span><span>ファイルを保存して終了<small>あとで自分でメールに添付して送ります</small></span></button>'+
+  return topBar("申請書をつくる",[3,3])+'<div class="body"><div class="done-mark" style="text-align:center">📥</div><h1 class="q" style="text-align:center">申請書ファイルを<br>保存しました</h1>'+
+     '<p class="hint" style="text-align:center">'+esc(c.filename)+'</p><p class="hint">このあと、どちらにしますか？</p><div class="choice">'+
+     '<button class="opt" type="button" data-act="savedMail" data-id="'+esc(c.id)+'"><span class="em">✉️</span><span>メールの下書きを作成<small>宛先・件名・本文が入ったメールを開きます</small></span></button>'+
+     '<button class="opt" type="button" data-act="savedEnd" data-id="'+esc(c.id)+'"><span class="em">👋</span><span>メールは自分で送るので終了<small>保存したファイルを、あとで送ります</small></span></button>'+
      '</div></div>';
 };
 /* ---------- 申請: 修正が必要 ---------- */
@@ -865,25 +867,6 @@ AFTER.claimSend=function(id){
 };
 
 /* ---------- メールの下書きを作る前の説明(iPhone) ---------- */
-var mpSaved={};
-SCREENS.mailPrep=function(id){
-  var c=claims.find(function(x){return x.id===id;});
-  if(!c)return SCREENS.home();
-  var saved=!!mpSaved[id];
-  var h=topBar("メールの下書きを作成")+'<div class="body"><h1 class="q">メールの下書きを<br>作ります</h1>'+
-    '<p class="hint">上から順番に進めてください。</p><div class="steps">'+
-    '<div class="step'+(saved?' done':'')+'"><h3><span class="n">'+(saved?'✓':'1')+'</span>申請書ファイルを保存</h3>'+
-      '<p>共有画面が開いたら「<b>"ファイル"に保存</b>」→ 右上の「保存」を押します。</p>'+
-      '<button class="btn '+(saved?'ghost':'main')+'" type="button" data-act="mpSave" data-id="'+esc(c.id)+'">📥 '+(saved?'もう一度保存':'ファイルを保存')+'</button></div>'+
-    '<div class="step'+(saved?'':' off')+'"><h3><span class="n">2</span>メールを開く</h3>'+
-      '<p><b>宛先・件名・本文</b>が入ったメールが開きます。</p>'+
-      '<button class="btn main" type="button" data-act="mpMail" data-id="'+esc(c.id)+'"'+(saved?'':' disabled')+'>✉️ メールを開く</button></div>'+
-    '<div class="step'+(saved?'':' off')+'"><h3><span class="n">3</span>メールで申請書を添付して送信</h3>'+
-      '<p style="margin:0">本文の下の空いているところをタップ → キーボードの上の<b>書類のマーク</b>（ファイルを添付）→「最近使った項目」の<b>'+esc(c.filename)+'</b>を選んで、送信します。</p></div>'+
-    '</div></div>';
-  return h;
-};
-
 /* ---------- 途中の申請書の一覧 ---------- */
 function draftSummary(c){
   var rs=(c.receiptIds||[]).map(function(id){return receipts.find(function(r){return r.id===id;});}).filter(Boolean);
@@ -936,8 +919,9 @@ SCREENS.claimDone=function(arg){
   var msg;
   var extra='';
   if(arg.how==="mailto"){
-    msg='メールの下書きを開きました。<br><b>保存した申請書ファイルを添付して</b>、送信してください。<br><small>（本文の下をタップ → キーボードの上の書類のマーク →「最近使った項目」）</small>';
+    msg='メールの下書きを開きました。<br><b>保存した申請書ファイルを添付して</b>、送信してください。<br><small>'+(arg.mobile?'（本文の下をタップ → キーボードの上の書類のマーク →「最近使った項目」）':'（「ダウンロード」フォルダに保存されています）')+'</small>';
   }
+  else if(arg.how==="saved")msg='保存した申請書ファイルを、保険会社（'+esc(insurerEmail())+'）にメールで送ってください。';
   else if(arg.how==="mail")msg='申請書PDFを「ダウンロード」に保存し、メールの下書きを開きました。<br><b>PDFをメールに添付して</b>送信してください。';
   else msg='申請書ファイルを保存しました。<br>保険会社（'+esc(insurerEmail())+'）に送ってください。';
   return '<div class="body" style="justify-content:center;text-align:center"><div class="done-mark">🎉</div><h1 class="q">おつかれさまでした</h1>'+
@@ -1634,7 +1618,11 @@ function act(a,el){
       cur_screen=stack.pop()||{name:"claimPick"};makePdf();break;
     case "replaceFile": rec.replacing=true;$("filePhoto").click();break;
     case "resume": go("claimSend",d.id);break;
-    case "claimOk": go("claimHow",d.id);break;
+    case "claimOk":
+      (async function(){var co=claims.find(function(x){return x.id===d.id;});if(!co||!co.pdfBlob){toast("PDFが見つかりません");return;}
+        if(await savePdf(co))go("claimSaved",d.id);})();break;
+    case "savedMail": finishClaim(d.id,"mailto");break;
+    case "savedEnd": finishClaim(d.id,"saved");break;
     case "claimFix": go("claimFix",d.id);break;
     case "fixRec": case "fixProfile": case "fixPick":
       (async function(){
@@ -1654,18 +1642,6 @@ function act(a,el){
     case "savePdf":
       var c2=claims.find(function(x){return x.id===d.id;});if(!c2||!c2.pdfBlob){toast("PDFが見つかりません");break;}
       savePdf(c2);break;
-    case "finishSave": finishClaim(d.id,"save");break;
-    case "finishMail":
-      var cm=claims.find(function(x){return x.id===d.id;});var fm=null;
-      try{fm=cm&&new File([cm.pdfBlob],cm.filename,{type:"application/pdf"});}catch(e){}
-      if(canShareFile(fm))go("mailPrep",d.id);   // iPhone: 先に説明を読んでもらう
-      else finishClaim(d.id,"mail");             // PC: そのまま保存＋メール作成画面
-      break;
-    case "openMail": finishClaim(d.id,"mail");break;
-    case "mpSave":
-      (async function(){var cs=claims.find(function(x){return x.id===d.id;});if(!cs||!cs.pdfBlob){toast("PDFが見つかりません");return;}
-        if(await savePdf(cs)){mpSaved[d.id]=true;render();}})();break;
-    case "mpMail": finishClaim(d.id,"mailto");break;
     case "discard": discard(d.id);break;
   }
 }
@@ -1693,7 +1669,9 @@ var lastFinished=null; // 完了画面で件名を表示するため
 async function finishClaim(id,how){
   var c=claims.find(function(x){return x.id===id;});if(!c||!c.pdfBlob){toast("PDFが見つかりません");return;}
   var ok=false;
-  if(how==="save"){
+  if(how==="saved"){
+    ok=true; // OKを押したときに保存済み
+  }else if(how==="save"){
     ok=await savePdf(c);
   }else if(how==="mailto"){
     // iPhone: ファイルは保存済み。宛先・件名・本文入りのメールを開く
