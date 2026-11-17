@@ -562,16 +562,47 @@ SCREENS.list=function(){
 
 /* ---------- 申請 1: えらぶ ---------- */
 var claimSel={};
+var claimFilter={month:"all",person:"all"};
+function claimPool(){
+  return selectable().filter(function(r){
+    return (claimFilter.month==="all"||monthKey(r.date)===claimFilter.month)&&
+           (claimFilter.person==="all"||r.person===claimFilter.person);
+  });
+}
+function resetClaimSel(){claimSel={};claimPool().slice(0,CLAIM_ROW_MAX).forEach(function(x){claimSel[x.id]=true;});}
 SCREENS.claimPick=function(){
-  var list=selectable();
+  var all=selectable(), list=claimPool();
   var selList=list.filter(function(r){return claimSel[r.id];});
   var h=topBar("申請書をつくる",[1,3])+'<div class="body"><h1 class="q">この'+selList.length+'件で<br>申請書をつくります</h1>';
-  h+='<p class="hint">古い順に、最大'+CLAIM_ROW_MAX+'件まで選んであります。外したいものはタップ。</p>';
-  list.forEach(function(r){
-    var on=!!claimSel[r.id];
-    h+='<button class="item sel'+(on?' on':'')+'" type="button" data-act="toggleSel" data-id="'+esc(r.id)+'">'+itemHtml(r,"sel")+'</button>';
-  });
-  if(list.length>CLAIM_ROW_MAX)h+='<p class="note">1回の申請書は'+CLAIM_ROW_MAX+'件までです。残りは次の申請で送れます。</p>';
+
+  // 絞り込み(月・人)。選べる値が2つ以上あるときだけ表示
+  var months={},people={};
+  all.forEach(function(r){var k=monthKey(r.date);months[k]=(months[k]||0)+1;people[r.person]=(people[r.person]||0)+1;});
+  var mk=Object.keys(months).sort(), pk=members().filter(function(m){return people[m];});
+  Object.keys(people).forEach(function(m){if(pk.indexOf(m)<0)pk.push(m);});
+  if(mk.length>1){
+    h+='<div class="field" style="margin-bottom:10px"><label>月で選ぶ</label><div class="chips" style="margin-bottom:0">'+
+      '<button class="chip'+(claimFilter.month==="all"?' on':'')+'" type="button" data-act="filt" data-k="month" data-v="all">すべて</button>';
+    mk.forEach(function(k){h+='<button class="chip'+(claimFilter.month===k?' on':'')+'" type="button" data-act="filt" data-k="month" data-v="'+esc(k)+'">'+esc(monthLabel(k).replace(/^\d+年/,""))+'（'+months[k]+'）</button>';});
+    h+='</div></div>';
+  }
+  if(pk.length>1){
+    h+='<div class="field" style="margin-bottom:14px"><label>人で選ぶ</label><div class="chips" style="margin-bottom:0">'+
+      '<button class="chip'+(claimFilter.person==="all"?' on':'')+'" type="button" data-act="filt" data-k="person" data-v="all">全員</button>';
+    pk.forEach(function(m){h+='<button class="chip'+(claimFilter.person===m?' on':'')+'" type="button" data-act="filt" data-k="person" data-v="'+esc(m)+'">'+esc(m)+'（'+people[m]+'）</button>';});
+    h+='</div></div>';
+  }
+
+  if(!list.length){
+    h+='<div class="empty">この条件のレシートはありません。</div>';
+  }else{
+    h+='<p class="hint" style="margin-bottom:12px">古い順に、最大'+CLAIM_ROW_MAX+'件まで選んであります。外したいものはタップ。</p>';
+    list.forEach(function(r){
+      var on=!!claimSel[r.id];
+      h+='<button class="item sel'+(on?' on':'')+'" type="button" data-act="toggleSel" data-id="'+esc(r.id)+'">'+itemHtml(r,"sel")+'</button>';
+    });
+  }
+  if(list.length>CLAIM_ROW_MAX)h+='<p class="note">1回の申請書は'+CLAIM_ROW_MAX+'件までです。残りは次の申請書にまとめられます。</p>';
   if(cur()==="JPY"){
     h+='<div class="field" style="margin-top:14px"><label>オーストラリアを出国した日（円での申請に必要）</label><input id="inDep" type="date" value="'+esc(claimDep||"")+'"/></div>';
   }
@@ -1061,7 +1092,7 @@ async function assemblePdf(sel,cm,imgMax,imgQ){
 }
 async function makePdf(){
   if(!profileReady()){toast("先に申請書の情報を登録します");setupFlow=true;go("setup",SETUP_ORDER.filter(function(k){return !setupChecks[k]();})[0]);return;}
-  var sel=selectable().filter(function(r){return claimSel[r.id];});
+  var sel=claimPool().filter(function(r){return claimSel[r.id];});
   if(!sel.length){toast("レシートを選んでください");return;}
   var cm={currency:cur(),departureDate:claimDep};
   if(cm.currency==="JPY"&&!cm.departureDate){toast("出国日を入れてください");return;}
@@ -1171,8 +1202,10 @@ function act(a,el){
       go("recCheck");break;
 
     case "claim":
-      claimSel={};selectable().slice(0,CLAIM_ROW_MAX).forEach(function(x){claimSel[x.id]=true;});
+      claimFilter={month:"all",person:"all"};resetClaimSel();
       go("claimPick");break;
+    case "filt":
+      claimFilter[d.k]=d.v;resetClaimSel();render();break;
     case "toggleSel":
       var n=Object.keys(claimSel).filter(function(k){return claimSel[k];}).length;
       if(!claimSel[d.id]&&n>=CLAIM_ROW_MAX){toast("1回で申請できるのは"+CLAIM_ROW_MAX+"件までです");break;}
