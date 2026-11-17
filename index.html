@@ -176,6 +176,12 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .help ol{padding-left:1.3em;margin:0 0 6px}
 .help li{margin-bottom:4px}
 .help p{font-size:13px;margin:0}
+.condlist{display:flex;flex-direction:column;gap:8px}
+.condrow{display:flex;align-items:stretch;background:var(--card);border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+.condrow.on{border-color:var(--main);background:var(--main-soft)}
+.condpick{flex:1;text-align:left;padding:14px 16px;font-size:17px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.condpick small{font-size:12px;font-weight:700;color:var(--sub);background:var(--bg);border-radius:6px;padding:2px 8px}
+.condx{width:48px;color:#A0A8AE;font-size:15px;border-left:1px solid var(--line)}
 /* ---------- 署名 ---------- */
 .sig{position:relative;background:#fff;border:2px dashed var(--line);border-radius:var(--r);height:180px}
 .sig canvas{width:100%;height:100%;display:block;touch-action:none}
@@ -240,6 +246,7 @@ var PROFILE_KEY="claim_pocket_profile_v1";
 var DB_NAME="claim_pocket_v1";
 var DEFAULT_INSURER_EMAIL="jpclaims@gbtpa.com.au";
 var POLICY_PREFIX="MEDIPACK0802/";
+var DEFAULT_BANK="ANZ", DEFAULT_BRANCH="SOUTH MELBOURNE"; // 基本情報の初期値(書きかえ可)
 var CLAIM_ROW_MAX=10;
 var MEMBER_MAX=10;
 var DEADLINE_DAYS=90, WARN_DAYS=60;
@@ -510,18 +517,42 @@ SCREENS.recWhat=function(){
 };
 
 /* ---------- 記録: 症状(病院のときだけ) ---------- */
+/* 症状の入力履歴(レシートを消しても残る) */
+function condHist(){return Array.isArray(profile.condHistory)?profile.condHistory:[];}
+function rememberCond(t,person){
+  t=String(t||"").trim();if(!t)return;
+  var h=condHist().filter(function(x){return x.t.toLowerCase()!==t.toLowerCase();});
+  h.unshift({t:t,p:person||"",at:Date.now()});
+  profile.condHistory=h.slice(0,30);saveProfile();
+}
+function seedCondHistory(){
+  if(Array.isArray(profile.condHistory))return;
+  if(!receipts.some(function(r){return r.condition;}))return; // 記録がなければ何もしない
+  var list=receipts.filter(function(r){return r.condition;}).sort(function(a,b){return a.date<b.date?1:-1;});
+  var seen={},h=[];
+  list.forEach(function(r){var k=r.condition.trim().toLowerCase();if(!k||seen[k])return;seen[k]=1;h.push({t:r.condition.trim(),p:r.person,at:0});});
+  profile.condHistory=h.slice(0,30);saveProfile();
+}
 SCREENS.recCond=function(){
-  var past={};
-  receipts.forEach(function(r){if(r.condition&&r.person===rec.person)past[r.condition]=1;});
-  receipts.forEach(function(r){if(r.condition)past[r.condition]=past[r.condition]||2;});
-  var keys=Object.keys(past).sort(function(a,b){return past[a]-past[b];}).slice(0,8);
+  // その人が前に入力したもの → ほかの人のもの、の順
+  var hist=condHist();
+  var mine=hist.filter(function(x){return x.p===rec.person;}),others=hist.filter(function(x){return x.p!==rec.person;});
+  var opts=mine.concat(others).slice(0,10);
   var h=topBar("レシートを記録",[3,REC_STEPS])+'<div class="body">'+readBanner()+'<h1 class="q">どんな症状・<br>理由でしたか？</h1><p class="hint">申請書の「傷病名」欄に入ります。ざっくりでOK（例：かぜ、腹痛、健診のフォロー）。</p>';
-  if(keys.length){h+='<div class="chips">';keys.forEach(function(k){h+='<button class="chip'+(rec.condition===k?' on':'')+'" type="button" data-act="setCondChip" data-v="'+esc(k)+'">'+esc(k)+'</button>';});h+='</div>';}
-  h+='<div class="field" id="fCond"><input id="inCond" type="text" placeholder="ここに入力" value="'+esc(rec.condition||"")+'" enterkeyhint="next"/><div class="err">入力してください</div></div>';
+  h+='<div class="field" id="fCond" style="margin-bottom:14px"><input id="inCond" type="text" placeholder="ここに入力" value="'+esc(rec.condition||"")+'" enterkeyhint="next" autocomplete="off"/><div class="err">入力するか、下から選んでください</div></div>';
+  if(opts.length){
+    h+='<div class="mhead" style="margin-top:4px"><span>前に入力した内容から選ぶ</span></div><div class="condlist">';
+    opts.forEach(function(x){
+      h+='<div class="condrow'+(rec.condition===x.t?' on':'')+'"><button type="button" class="condpick" data-act="setCondChip" data-v="'+esc(x.t)+'">'+esc(x.t)+
+         (x.p&&x.p!==rec.person?'<small>'+esc(x.p)+'</small>':'')+'</button>'+
+         '<button type="button" class="condx" data-act="condForget" data-v="'+esc(x.t)+'" aria-label="候補から消す">✕</button></div>';
+    });
+    h+='</div>';
+  }
   h+='</div><div class="foot"><button class="btn main" type="button" data-act="condNext">つぎへ</button></div>';
   return h;
 };
-AFTER.recCond=function(){var i=$("inCond");if(i&&!i.value)setTimeout(function(){i.focus();},250);
+AFTER.recCond=function(){var i=$("inCond");if(i&&!i.value&&!condHist().length)setTimeout(function(){i.focus();},250);
   i.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();act("condNext");}});};
 
 /* ---------- 記録: 金額 ---------- */
@@ -814,8 +845,8 @@ SCREENS.setup=function(step){
     h+=fld("sAddr","住所（英語）",profile.address,{ph:"1 SMITH ST, MELBOURNE, VIC"});
   }else if(step==="bank"){
     h+='<h1 class="q">保険金を受け取る<br>口座は？</h1><p class="hint">オーストラリアの銀行口座です。</p>';
-    h+=fld("sBank","銀行名",profile.bank,{ph:"ANZ"});
-    h+=fld("sBranch","支店名",profile.branch,{ph:"MELBOURNE"});
+    h+=fld("sBank","銀行名",profile.bank||DEFAULT_BANK,{ph:"ANZ",ex:"ちがうときは書きかえてください"});
+    h+=fld("sBranch","支店名",profile.branch||DEFAULT_BRANCH,{ph:"SOUTH MELBOURNE"});
     h+=fld("sBSB","BSB（6けたの数字）",profile.bsb,{im:"numeric",ph:"000000",max:6,err:"6けたの数字を入力してください"});
     h+=fld("sAcc","口座番号",profile.accNo,{im:"numeric",ph:"12345678",max:14});
     h+=fld("sAccN","口座の名義（ローマ字）",profile.accName,{ph:"TARO YAMADA"});
@@ -1347,6 +1378,7 @@ async function saveRec(){
     amount:String(parseAmt(rec.amount,cur())),date:rec.date,fileType:rec.fileType,fileName:rec.fileName||"",blob:rec.blob,thumb:rec.thumb,
     createdAt:ex?ex.createdAt:new Date().toISOString(),claimedAt:ex?ex.claimedAt:null,claimId:ex?ex.claimId:null};
   try{await dbPut("receipts",r);}catch(e){toast("保存できませんでした");return;}
+  if(r.category==="M"&&r.condition)rememberCond(r.condition,r.person);
   var i=receipts.findIndex(function(x){return x.id===r.id;});if(i>=0)receipts[i]=r;else receipts.push(r);
   delete badFiles[r.id];
   var wasEdit=rec.mode==="edit";rec=null;
@@ -1377,6 +1409,9 @@ function act(a,el){
     case "setPerson": rec.person=d.v;if(rec.auto)delete rec.auto.person;nextAfter("recWho");break;
     case "setCat": rec.category=d.v;if(rec.auto)delete rec.auto.category;nextAfter("recWhat");break;
     case "setCondChip": rec.condition=d.v;nextAfter("recCond");break;
+    case "condForget":
+      profile.condHistory=condHist().filter(function(x){return x.t!==d.v;});saveProfile();
+      var keep=$("inCond")?$("inCond").value:"";render();if(keep&&$("inCond"))$("inCond").value=keep;break;
     case "condNext":
       var cv=($("inCond").value||"").trim();
       if(!cv){$("fCond").classList.add("bad");$("inCond").focus();break;}
@@ -1511,6 +1546,7 @@ $("viewerClose").addEventListener("click",closeViewer);
     for(var k=0;k<done.length;k++)await dbDel("claims",done[k].id);
     claims=claims.filter(function(c){return c.status==="draft";});
   }catch(e){console.error(e);toast("データを読み込めませんでした");}
+  seedCondHistory();
   home();
   setTimeout(scanStored,300);
   if(navigator.storage&&navigator.storage.persist){try{navigator.storage.persist();}catch(e){}}
