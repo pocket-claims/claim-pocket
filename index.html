@@ -194,6 +194,23 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .pdfthumb{display:block;width:100%;padding:0;border:0;background:none;text-align:center;position:relative;margin-bottom:6px}
 .pdfthumb .pdfprev{max-height:380px;overflow:hidden;margin:0;position:relative}
 .pdfthumb .cap{display:block;margin-top:-44px;position:relative;padding:12px;font-size:15px;font-weight:800;color:var(--main);background:linear-gradient(to top,rgba(255,255,255,.97) 70%,rgba(255,255,255,0));border-radius:0 0 var(--r) var(--r)}
+.stickyrec{position:sticky;top:0;z-index:6;background:var(--bg);padding:6px 0 4px;margin:0 0 10px;box-shadow:0 8px 10px -8px rgba(0,0,0,.18)}
+.stickyrec .photo{max-height:21vh;width:auto;max-width:100%;margin:0 auto 2px;display:block}
+.stickyrec .note{margin:0;text-align:center;font-size:12px}
+.row.miss{display:block;background:#FFF6E5;border-left:5px solid #F2A33A;cursor:default}
+.row.miss.filled{background:#EEF7F1;border-left-color:var(--main)}
+.row.miss.bad{animation:shake .35s;background:#FDE8E4;border-left-color:var(--danger)}
+.row.miss .k{display:block;margin-bottom:8px;font-weight:800;color:#9A5B00}
+.row.miss.filled .k{color:var(--main)}
+.row.miss .v{display:block}
+.mchips{display:flex;flex-wrap:wrap;gap:8px}
+.mchips .chip{font-size:16px;padding:10px 14px}
+.mchips .chip.small{font-size:14px;padding:7px 12px}
+.row.miss input{width:100%;font-size:20px;padding:12px 14px;border:2px solid #F2C27A;border-radius:12px;background:#fff}
+.row.miss.filled input{border-color:var(--main)}
+.amtin{display:flex;align-items:center;gap:8px}.amtin span{font-size:22px;font-weight:800;color:var(--sub)}
+.mhint{display:block;margin-top:6px;color:var(--sub);font-size:13px;font-weight:600}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .fixbox{background:var(--main-soft);border:1.5px solid var(--main);border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:16px;font-weight:800;color:var(--ink)}
 .fixbox small{font-size:13px;font-weight:600;color:var(--sub)}
 .redo{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);text-align:center}
@@ -672,7 +689,12 @@ SCREENS.recDate=function(){
 };
 function refreshCal(){
   $("calBox").innerHTML=calHtml();
-  var b=$("dateBtn");b.disabled=!pickedDate;b.textContent=pickedDate?jpDateW(pickedDate)+"にする":"日付を選んでください";
+  var b=$("dateBtn");if(b){b.disabled=!pickedDate;b.textContent=pickedDate?jpDateW(pickedDate)+"にする":"日付を選んでください";}
+  if(cur_screen&&cur_screen.name==="recCheck"&&rec){
+    rec.date=pickedDate;if(rec.auto)delete rec.auto.date;
+    var l=$("dateLabel");if(l)l.textContent=pickedDate?jpDateW(pickedDate):"下の日付をタップ";
+    var r=$("m_date");if(r)r.classList.toggle("filled",!!pickedDate);
+  }
 }
 
 /* ---------- 記録: 確認 ---------- */
@@ -680,24 +702,52 @@ SCREENS.recCheck=function(){
   var c=CATS[rec.category]||{em:"",name:""};
   var editing=rec.mode==="edit";
   var claimed=editing&&rec.claimedAt;
+  var miss=editing?{}:missingMap(), nMiss=Object.keys(miss).length;
   var h=topBar(editing?"レシートの内容":"内容の確認")+'<div class="body">';
+  if(!editing&&nMiss&&rec)rec.readNote="";
   h+=readBanner();
-  h+='<h1 class="q">'+(editing?(claimed?"申請書を作成済みのレシート":"レシートの内容"):"この内容で<br>保存しますか？")+'</h1>';
+  h+='<h1 class="q">'+(editing?(claimed?"申請書を作成済みのレシート":"レシートの内容"):(nMiss?"レシートを見ながら<br>入力してください":"この内容で<br>保存しますか？"))+'</h1>';
   var au=rec.auto||{},anyAuto=!editing&&Object.keys(au).length>0;
-  if(anyAuto)h+='<div class="alert info" style="margin:0 0 14px;width:100%"><span class="em">📖</span><span><b>レシートから読み取りました</b><span>「読取」の印がある項目は、レシートと合っているか見てください。</span></span></div>';
+  if(!editing&&nMiss)h+='<div class="alert warn" style="margin:0 0 14px;width:100%"><span class="em">✍️</span><span><b>'+(anyAuto?'読み取れなかった項目が'+nMiss+'つあります':'下の'+nMiss+'つを入力してください')+'</b><span>オレンジの欄に入力してください。'+(anyAuto?'「読取」の印がある項目も、合っているか見てください。':'')+'</span></span></div>';
+  else if(anyAuto)h+='<div class="alert info" style="margin:0 0 14px;width:100%"><span class="em">📖</span><span><b>レシートから読み取りました</b><span>「読取」の印がある項目は、レシートと合っているか見てください。</span></span></div>';
   else if(!editing)h+='<p class="hint">ちがうところはタップして直せます。</p>';
   function badge(k){return anyAuto&&au[k]?' <span class="tag old" style="vertical-align:middle;white-space:nowrap">読取</span>':'';}
   if(editing&&!claimed&&badFiles[rec.id]){var ft=FAIL_TEXT[badFiles[rec.id]]||FAIL_TEXT.pdf;h+='<div class="alert" style="margin:0 0 14px;width:100%;background:#FDE8E4;color:#7A1C10"><span class="em">⚠️</span><span><b>'+ft.t+'</b><span>'+ft.s+'</span></span></div>';}
-  if(rec.fileType==="pdf"&&rec.thumb)h+='<img class="photo" src="'+rec.thumb+'" alt="レシート" data-act="viewImg" style="max-height:22vh"/><p class="note" style="margin:-8px 0 12px">📄 '+esc(rec.fileName||"PDF")+'（タップで全体を表示）</p>';
+  if(nMiss&&rec.thumb)h+='<div class="stickyrec"><img class="photo" src="'+rec.thumb+'" alt="レシート" data-act="viewImg"/><p class="note">タップで大きく表示</p></div>';
+  else if(rec.fileType==="pdf"&&rec.thumb)h+='<img class="photo" src="'+rec.thumb+'" alt="レシート" data-act="viewImg" style="max-height:22vh"/><p class="note" style="margin:-8px 0 12px">📄 '+esc(rec.fileName||"PDF")+'（タップで全体を表示）</p>';
   else   if(rec.fileType==="pdf")h+='<button class="pdfmark" type="button" data-act="viewImg" style="width:100%;text-align:left"><span class="em">📄</span><span style="flex:1">'+esc(rec.fileName||"PDFファイル")+'</span><span class="ed" style="color:var(--main)">開く</span></button>';
   else if(rec.thumb)h+='<img class="photo" src="'+rec.thumb+'" alt="レシート" data-act="viewImg" style="max-height:22vh"/><p class="note" style="margin:-8px 0 12px">写真をタップすると大きく見られます</p>';
   var dis=claimed?' disabled':'';
   h+='<div class="sum">';
-  h+='<button class="row" type="button" data-act="editStep" data-step="recWho"'+dis+'><span class="k">だれ</span><span class="v">'+esc(rec.person)+badge('person')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
-  h+='<button class="row" type="button" data-act="editStep" data-step="recWhat"'+dis+'><span class="k">種類</span><span class="v">'+c.em+' '+esc(c.name)+badge('category')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
-  if(rec.category==="M")h+='<button class="row" type="button" data-act="editStep" data-step="recCond"'+dis+'><span class="k">症状</span><span class="v">'+esc(rec.condition)+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
-  h+='<button class="row" type="button" data-act="editStep" data-step="recAmt"'+dis+'><span class="k">金額</span><span class="v">'+esc(fmtMoney(rec.amount,cur()))+badge('amount')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
-  h+='<button class="row" type="button" data-act="editStep" data-step="recDate"'+dis+'><span class="k">受診日</span><span class="v">'+esc(jpDate(rec.date))+' <small style="color:var(--sub);font-weight:600">('+esc(isoToAu(rec.date))+')</small>'+badge('date')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
+  if(miss.person){
+    h+='<div class="row miss" id="m_person"><span class="k">だれ</span><div class="v"><div class="mchips">';
+    members().forEach(function(m){h+='<button type="button" class="chip" data-act="inPerson" data-v="'+esc(m)+'">👤 '+esc(m)+'</button>';});
+    h+='</div></div></div>';
+  }else h+='<button class="row" type="button" data-act="editStep" data-step="recWho"'+dis+'><span class="k">だれ</span><span class="v">'+esc(rec.person)+badge('person')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
+  if(miss.category){
+    h+='<div class="row miss" id="m_category"><span class="k">種類</span><div class="v"><div class="mchips">';
+    ["M","P","D"].forEach(function(k){h+='<button type="button" class="chip" data-act="inCat" data-v="'+k+'">'+CATS[k].em+' '+esc(CATS[k].name)+'</button>';});
+    h+='</div></div></div>';
+  }else h+='<button class="row" type="button" data-act="editStep" data-step="recWhat"'+dis+'><span class="k">種類</span><span class="v">'+c.em+' '+esc(c.name)+badge('category')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
+  if(rec.category==="M"){
+    if(miss.condition||rec.inlineCond){
+      rec.inlineCond=true;
+      var hist=condHist().filter(function(x){return x.p===rec.person;}).concat(condHist().filter(function(x){return x.p!==rec.person;})).slice(0,6);
+      h+='<div class="row miss'+(rec.condition?' filled':'')+'" id="m_condition"><span class="k">症状</span><div class="v"><input id="inCondI" type="text" maxlength="60" placeholder="例：かぜ、腹痛" value="'+esc(rec.condition||"")+'" autocomplete="off"/>';
+      if(hist.length){h+='<div class="mchips" style="margin-top:8px">';hist.forEach(function(x){h+='<button type="button" class="chip small" data-act="inCondChip" data-v="'+esc(x.t)+'">'+esc(x.t)+'</button>';});h+='</div>';}
+      h+='</div></div>';
+    }else h+='<button class="row" type="button" data-act="editStep" data-step="recCond"'+dis+'><span class="k">症状</span><span class="v">'+esc(rec.condition)+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
+  }
+  if(miss.amount||rec.inlineAmt){
+    rec.inlineAmt=true;
+    h+='<div class="row miss'+(parseAmt(rec.amount,cur())>0?' filled':'')+'" id="m_amount"><span class="k">金額</span><div class="v"><div class="amtin"><span>'+curMark(cur())+'</span><input id="inAmtI" type="text" inputmode="decimal" placeholder="0.00" value="'+esc(rec.amount||"")+'" autocomplete="off"/></div><small class="mhint">「合計」「Total」「Amount paid」の金額</small></div></div>';
+  }else h+='<button class="row" type="button" data-act="editStep" data-step="recAmt"'+dis+'><span class="k">金額</span><span class="v">'+esc(fmtMoney(rec.amount,cur()))+badge('amount')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
+  if(miss.date||rec.inlineDate){
+    rec.inlineDate=true;
+    if(!calMonth)calMonth=(rec.date||todayIso()).slice(0,7);
+    pickedDate=rec.date||"";
+    h+='<div class="row miss'+(rec.date?' filled':'')+'" id="m_date"><span class="k">受診日</span><div class="v"><b id="dateLabel">'+(rec.date?esc(jpDateW(rec.date)):'下の日付をタップ')+'</b><div id="calBox" style="margin-top:8px">'+calHtml()+'</div></div></div>';
+  }else h+='<button class="row" type="button" data-act="editStep" data-step="recDate"'+dis+'><span class="k">受診日</span><span class="v">'+esc(jpDate(rec.date))+' <small style="color:var(--sub);font-weight:600">('+esc(isoToAu(rec.date))+')</small>'+badge('date')+'</span>'+(claimed?'':'<span class="ed">変更</span>')+'</button>';
   h+='</div>';
   if(claimed)h+='<p class="note">申請書を作成済みのため変更できません。</p>';
   else if(editing&&draftsWith(rec.id).length)h+='<p class="note" style="color:var(--warn);font-weight:700;text-align:left">このレシートは「途中の申請書」に入っています。変更・削除すると、その申請書は削除されます（あとで作り直せます）。</p>';
@@ -1164,7 +1214,7 @@ async function onFile(file,want){
     }
     if(members().length===1&&!rec.person)rec.person=members()[0];
     await autoRead();
-    go(nextMissing());
+    go("recCheck");
   }catch(e){hideLoading();console.error(e);go("recFileError",isPdf?"pdf":"img");}
 }
 
@@ -1356,6 +1406,20 @@ function readBanner(){
   var t=rec.readNote;rec.readNote="";
   return '<div class="alert info" style="margin:0 0 14px;width:100%"><span class="em">📖</span><span><span>'+esc(t)+'</span></span></div>';
 }
+function missingMap(){
+  var m={};
+  if(!rec.person)m.person=1;
+  if(!rec.category)m.category=1;
+  if(rec.category==="M"&&!(rec.condition||"").trim())m.condition=1;
+  if(!(parseAmt(rec.amount,cur())>0))m.amount=1;
+  if(!rec.date)m.date=1;
+  return m;
+}
+function rerenderKeep(){var y=window.scrollY;render();window.scrollTo(0,y);}
+AFTER.recCheck=function(){
+  var a=$("inAmtI");if(a)a.addEventListener("input",function(){rec.amount=a.value;if(rec.auto)delete rec.auto.amount;var r=$("m_amount");if(r)r.classList.toggle("filled",parseAmt(a.value,cur())>0);});
+  var c=$("inCondI");if(c)c.addEventListener("input",function(){rec.condition=c.value;var r=$("m_condition");if(r)r.classList.toggle("filled",!!c.value.trim());});
+};
 function nextMissing(){
   if(!rec.person)return "recWho";
   if(!rec.category)return "recWhat";
@@ -1498,7 +1562,7 @@ async function savePdf(c,quiet){
 /* ========================================================
    操作
    ======================================================== */
-function startRec(){pickedDate="";calMonth="";rec={mode:"new",id:uid(),person:"",category:"",condition:"",amount:"",date:"",auto:{},blob:null,thumb:"",fileType:"",fileName:""};go("recType");}
+function startRec(){pickedDate="";calMonth="";rec={inlineAmt:false,inlineCond:false,inlineDate:false,mode:"new",id:uid(),person:"",category:"",condition:"",amount:"",date:"",auto:{},blob:null,thumb:"",fileType:"",fileName:""};go("recType");}
 function nextAfter(step){
   // 確認画面から直しに来た場合は確認画面に戻る
   if(rec.fromCheck){
@@ -1514,6 +1578,15 @@ async function saveRec(){
   try{await saveRec0();}finally{saving=false;}
 }
 async function saveRec0(){
+  if(rec.mode!=="edit"){
+    var mm=missingMap(),ks=Object.keys(mm);
+    if(ks.length){
+      var first=$("m_"+ks[0]);
+      ks.forEach(function(k){var e=$("m_"+k);if(e)e.classList.add("bad");});
+      if(first)first.scrollIntoView({behavior:"smooth",block:"center"});
+      toast("オレンジの欄に入力してください（あと"+ks.length+"つ）");return;
+    }
+  }
   var ex=rec.mode==="edit"?receipts.find(function(x){return x.id===rec.id;}):null;
   var r={id:rec.id,person:rec.person,category:rec.category,condition:rec.category==="M"?(rec.condition||"").trim():"",
     amount:String(parseAmt(rec.amount,cur())),date:rec.date,fileType:rec.fileType,fileName:rec.fileName||"",blob:rec.blob,thumb:rec.thumb,
@@ -1575,6 +1648,9 @@ function act(a,el){
     case "calPick": pickedDate=d.v;refreshCal();break;
     case "calMove": calMonth=addMonth(calMonth,Number(d.v));refreshCal();break;
     case "editStep": pickedDate="";calMonth="";rec.fromCheck=true;go(d.step);break;
+    case "inPerson": rec.person=d.v;rerenderKeep();break;
+    case "inCat": rec.category=d.v;rerenderKeep();break;
+    case "inCondChip": rec.condition=d.v;var ci=$("inCondI");if(ci)ci.value=d.v;var cr=$("m_condition");if(cr)cr.classList.add("filled");break;
     case "saveRec": saveRec();break;
     case "cancelRec": if(confirm("このレシートの記録をやめますか？")){rec=null;home();}break;
     case "delRec":
