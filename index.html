@@ -397,7 +397,7 @@ function back(){
   if(!prev){cur_screen={name:"home"};}else cur_screen=prev;
   render();
 }
-function home(){stack=[];cur_screen={name:"home"};render();}
+function home(){stack=[];cur_screen={name:"home"};render();if(updateReady)setTimeout(applyUpdateIfIdle,300);}
 /* 端末の「戻る」: アプリ内で1つ前の画面へ。ホームでもう一度押すとアプリを閉じる */
 var HIST=!!(window.history&&history.pushState);
 function armBack(){if(HIST&&!(history.state&&history.state.cp)){try{history.pushState({cp:1},"");}catch(e){}}}
@@ -1858,6 +1858,30 @@ $("filePdf").addEventListener("change",function(){var f=this.files&&this.files[0
 $("loadingSkip").addEventListener("click",function(){if(readSkip)readSkip();});
 $("viewerClose").addEventListener("click",closeViewer);
 
+/* ---------- 自動アップデート ----------
+   開いたとき・アプリに戻ったときに、公開中の最新版を確かめる。
+   新しい版があれば、入力の途中でなければその場で、途中ならホームに戻ったときに切り替える。
+   データ（端末の中の保存）は切り替えても消えない。 */
+var APP_VERSION="2026-11-18a";
+var updateReady=null;
+function checkUpdate(){
+  if(!navigator.onLine||location.protocol==="file:")return;
+  fetch(location.pathname+"?check="+Date.now(),{cache:"no-store"}).then(function(r){return r.ok?r.text():"";}).then(function(t){
+    var m=/var APP_VERSION="([^"]+)"/.exec(t||"");
+    if(!m||m[1]===APP_VERSION)return;
+    var tried=null;try{tried=sessionStorage.getItem("cp_upd_try");}catch(e){}
+    if(tried===m[1])return;   // 同じ版で何度も切り替えない
+    updateReady=m[1];applyUpdateIfIdle();
+  }).catch(function(){});
+}
+function applyUpdateIfIdle(){
+  if(!updateReady)return;
+  var idle=(!cur_screen||cur_screen.name==="home")&&!stack.length&&!rec&&$("loading").hidden;
+  if(!idle)return;
+  try{sessionStorage.setItem("cp_upd_try",updateReady);}catch(e){}
+  location.replace(location.pathname+"?v="+encodeURIComponent(updateReady));
+}
+document.addEventListener("visibilitychange",function(){if(!document.hidden)checkUpdate();});
 (async function init(){
   try{receipts=await dbAll("receipts");claims=await dbAll("claims");
     // 作成済みの申請書PDFは容量を使うので削除(レシートの「申請書作成済み」はそのまま)
@@ -1867,6 +1891,7 @@ $("viewerClose").addEventListener("click",closeViewer);
   }catch(e){console.error(e);toast("データを読み込めませんでした");}
   seedCondHistory();
   home();
+  setTimeout(checkUpdate,1500);
   setTimeout(scanStored,300);
   if(navigator.storage&&navigator.storage.persist){try{navigator.storage.persist();}catch(e){}}
 })();
