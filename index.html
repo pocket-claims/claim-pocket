@@ -416,7 +416,6 @@ SCREENS.home=function(){
   if(receipts.length){
     h+='<div class="links">';
     h+='<button class="link" type="button" data-act="list">記録したレシートを見る（'+receipts.length+'件）</button>';
-    if(claims.some(function(c){return c.status!=="draft";}))h+='<button class="link" type="button" data-act="history">これまでの申請</button>';
     h+='</div>';
   }
   return h;
@@ -758,19 +757,6 @@ SCREENS.claimDone=function(){
     '<div class="foot"><button class="btn main" type="button" data-act="home">ホームにもどる</button></div>';
 };
 
-/* ---------- これまでの申請 ---------- */
-SCREENS.history=function(){
-  var done=claims.filter(function(c){return c.status!=="draft";}).sort(function(a,b){return a.createdAt<b.createdAt?1:-1;});
-  var h=topBar("これまでの申請")+'<div class="body">';
-  if(!done.length)return h+'<div class="empty">まだ申請はありません。</div></div>';
-  done.forEach(function(c){
-    var d=new Date(c.sentAt||c.createdAt);
-    h+='<div class="step" style="margin-bottom:12px"><h3>'+d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日</h3><p>'+c.receiptIds.length+'件・'+esc(c.totalText||"")+'</p>'+
-      '<div style="display:flex;gap:10px"><button class="btn ghost" type="button" data-act="savePdf" data-id="'+esc(c.id)+'" style="min-height:50px;font-size:16px">PDFを保存</button>'+
-      '<button class="btn ghost" type="button" data-act="undo" data-id="'+esc(c.id)+'" style="min-height:50px;font-size:16px">取り消す</button></div></div>';
-  });
-  return h+'</div>';
-};
 
 /* ---------- 設定 ---------- */
 var SETUP_ORDER=["you","contact","bank","family","sign"];
@@ -1404,28 +1390,20 @@ function act(a,el){
       savePdf(c2);break;
     case "markSent": markSent(d.id);break;
     case "discard": discard(d.id);break;
-    case "history": go("history");break;
-    case "undo": undoClaim(d.id);break;
   }
 }
 async function markSent(id){
   var c=claims.find(function(x){return x.id===id;});if(!c)return;
-  if(!confirm("保険会社に送りましたか？\n「OK」で申請済みにします。"))return;
+  if(!confirm("保険会社に送りましたか？\n「OK」で申請済みにします。\n\n※ 容量を節約するため、アプリの中の申請書PDFは削除されます（保存したPDFはそのまま残ります）。"))return;
   var now=new Date().toISOString();
   for(var i=0;i<receipts.length;i++){if(c.receiptIds.indexOf(receipts[i].id)>=0){receipts[i].claimedAt=now;receipts[i].claimId=c.id;await dbPut("receipts",receipts[i]);}}
-  c.status="done";c.sentAt=now;await dbPut("claims",c);
+  await dbDel("claims",c.id);claims=claims.filter(function(x){return x.id!==c.id;});
   stack=[];cur_screen={name:"claimDone"};render();
 }
 async function discard(id){
   if(!confirm("この申請書を消して、選び直しますか？\n（レシートは消えません）"))return;
   await dbDel("claims",id);claims=claims.filter(function(x){return x.id!==id;});
   toast("申請書を消しました");home();
-}
-async function undoClaim(id){
-  if(!confirm("この申請を取り消して、レシートを「まだ」に戻しますか？\n（送ったメールは取り消されません）"))return;
-  for(var i=0;i<receipts.length;i++){if(receipts[i].claimId===id){receipts[i].claimedAt=null;receipts[i].claimId=null;await dbPut("receipts",receipts[i]);}}
-  await dbDel("claims",id);claims=claims.filter(function(x){return x.id!==id;});
-  toast("取り消しました");render();
 }
 
 /* ---------- 起動 ---------- */
@@ -1441,7 +1419,12 @@ $("loadingSkip").addEventListener("click",function(){if(readSkip)readSkip();});
 $("viewerClose").addEventListener("click",function(){$("viewer").hidden=true;var s=$("viewerImg").src;$("viewerImg").src="";if(s&&s.indexOf("blob:")===0)URL.revokeObjectURL(s);});
 
 (async function init(){
-  try{receipts=await dbAll("receipts");claims=await dbAll("claims");}catch(e){console.error(e);toast("データを読み込めませんでした");}
+  try{receipts=await dbAll("receipts");claims=await dbAll("claims");
+    // 申請済みの申請書PDFは容量を使うので削除(レシートの「申請済み」はそのまま)
+    var done=claims.filter(function(c){return c.status!=="draft";});
+    for(var k=0;k<done.length;k++)await dbDel("claims",done[k].id);
+    claims=claims.filter(function(c){return c.status==="draft";});
+  }catch(e){console.error(e);toast("データを読み込めませんでした");}
   home();
   setTimeout(scanStored,300);
   if(navigator.storage&&navigator.storage.persist){try{navigator.storage.persist();}catch(e){}}
