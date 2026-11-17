@@ -763,11 +763,10 @@ SCREENS.claimSend=function(id){
   var mb=c.pdfBlob?(c.pdfBlob.size/1048576):0;
   var h=topBar("申請書をつくる",[2,3])+'<div class="body"><h1 class="q" style="white-space:nowrap">申請書ができました</h1>';
   h+='<p class="hint">'+c.receiptIds.length+'件・'+esc(c.totalText||"")+'。名前・日付・金額が合っているか、下で確認してください。</p>';
+  h+='<p class="note" style="text-align:left;margin:0 0 6px;font-weight:700">📄 '+esc(c.filename)+'（'+(mb?mb.toFixed(1):"?")+'MB）</p>';
   h+='<div class="pdfprev" id="pdfPrev"><div class="vmsg">申請書を表示しています…</div></div>';
-  h+='<p class="note">'+esc(c.filename)+'（'+(mb?mb.toFixed(1):"?")+'MB）</p>';
   if(mb>10)h+='<p class="note" style="color:var(--warn);font-weight:700">ファイルが大きめです。メールで送れないときは、件数を減らして2回に分けてください。</p>';
-  h+='<div style="margin-top:6px"><button class="btn text" type="button" data-act="home">あとで（ホームから続けられます）</button>'+
-     '<button class="btn text danger" type="button" data-act="discard" data-id="'+esc(c.id)+'">この申請書を作り直す</button></div></div>';
+  h+='<div style="margin-top:6px"><button class="btn text danger" type="button" data-act="discard" data-id="'+esc(c.id)+'">この申請書を作り直す</button></div></div>';
   h+='<div class="foot">'+
      '<button class="btn main" type="button" data-act="finishSave" data-id="'+esc(c.id)+'">📥 申請書ファイルを保存して終了</button>'+
      '<button class="btn ghost" type="button" data-act="finishMail" data-id="'+esc(c.id)+'">✉️ メールの下書きも作成</button></div>';
