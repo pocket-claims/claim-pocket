@@ -155,6 +155,20 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .copyline button{background:var(--main-soft);color:var(--main);font-weight:800;border-radius:10px;padding:8px 12px;font-size:15px;white-space:nowrap}
 .done-mark{font-size:72px;text-align:center;margin:30px 0 10px}
 
+.cal{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 10px 14px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 10px}
+.cal-head b{font-size:20px;font-weight:800}
+.cal-nav{width:48px;height:48px;border-radius:50%;font-size:28px;font-weight:700;color:var(--main);background:var(--main-soft)}
+.cal-nav:disabled{opacity:.25}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-w{font-size:13px;font-weight:700;color:var(--sub);padding:4px 0}
+.cal-d{height:46px;border-radius:12px;font-size:18px;font-weight:700}
+.cal-d:disabled{color:#C9CDD0}
+.sun{color:#B42318}.sat{color:#1D4ED8}
+.cal-d.sun:disabled,.cal-d.sat:disabled{color:#C9CDD0}
+.cal-d.today{box-shadow:inset 0 0 0 2px var(--line)}
+.cal-d.on{background:var(--main);color:#fff;box-shadow:none}
+
 /* ---------- 署名 ---------- */
 .sig{position:relative;background:#fff;border:2px dashed var(--line);border-radius:var(--r);height:180px}
 .sig canvas{width:100%;height:100%;display:block;touch-action:none}
@@ -497,39 +511,40 @@ AFTER.recAmt=function(){var i=$("inAmt");setTimeout(function(){i.focus();},250);
   i.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();act("amtNext");}});};
 
 /* ---------- 記録: 日付 ---------- */
-var pickedDate=""; // 「ほかの日」で選んだ日(決定ボタンを押すまで仮)
+var pickedDate="";   // カレンダーで選んだ日(決定ボタンを押すまで仮)
+var calMonth="";     // 表示中の月 "YYYY-MM"
 function jpDateW(iso){var p=String(iso).split("-");var d=new Date(+p[0],+p[1]-1,+p[2]);return jpDate(iso)+"（"+"日月火水木金土"[d.getDay()]+"）";}
+function addMonth(ym,n){var p=ym.split("-");var d=new Date(+p[0],+p[1]-1+n,1);return d.getFullYear()+"-"+pad2(d.getMonth()+1);}
+function calHtml(){
+  var t=todayIso(),thisM=t.slice(0,7),minM=addMonth(thisM,-12);
+  var p=calMonth.split("-"),y=+p[0],m=+p[1];
+  var first=new Date(y,m-1,1).getDay(),days=new Date(y,m,0).getDate();
+  var h='<div class="cal"><div class="cal-head">'+
+    '<button type="button" class="cal-nav" data-act="calMove" data-v="-1"'+(calMonth<=minM?' disabled':'')+' aria-label="前の月">‹</button>'+
+    '<b>'+y+'年'+m+'月</b>'+
+    '<button type="button" class="cal-nav" data-act="calMove" data-v="1"'+(calMonth>=thisM?' disabled':'')+' aria-label="次の月">›</button></div>';
+  h+='<div class="cal-grid">';
+  "日月火水木金土".split("").forEach(function(w,i){h+='<span class="cal-w'+(i===0?' sun':i===6?' sat':'')+'">'+w+'</span>';});
+  for(var i=0;i<first;i++)h+='<span></span>';
+  for(var d=1;d<=days;d++){
+    var iso=y+"-"+pad2(m)+"-"+pad2(d),dow=(first+d-1)%7;
+    var cls="cal-d"+(iso===pickedDate?" on":"")+(iso===t?" today":"")+(dow===0?" sun":dow===6?" sat":"");
+    h+='<button type="button" class="'+cls+'" data-act="calPick" data-v="'+iso+'"'+(iso>t?' disabled':'')+'>'+d+'</button>';
+  }
+  return h+'</div></div>';
+}
 SCREENS.recDate=function(){
-  var t=todayIso(),y=yesterdayIso();
-  var other=rec.date&&rec.date!==t&&rec.date!==y;
-  if(other&&!pickedDate)pickedDate=rec.date;
-  var h=topBar("レシートを記録",[5,REC_STEPS])+'<div class="body"><h1 class="q">受診した日は？</h1><p class="hint">レシートに書いてある日付です。</p><div class="choice">';
-  h+='<button class="opt'+(rec.date===t&&!pickedDate?' on':'')+'" type="button" data-act="setDate" data-v="'+t+'"><span class="em">☀️</span><span>今日<small>'+jpDate(t)+'</small></span></button>';
-  h+='<button class="opt'+(rec.date===y&&!pickedDate?' on':'')+'" type="button" data-act="setDate" data-v="'+y+'"><span class="em">🌙</span><span>きのう<small>'+jpDate(y)+'</small></span></button>';
-  // label で囲まない(囲むとタップが2回伝わり、カレンダーがすぐ閉じる)
-  h+='<div class="opt'+(pickedDate?' on':'')+'" id="otherBox" style="position:relative"><span class="em">🔎</span><span>ほかの日を選ぶ<small id="otherLab">'+(pickedDate?jpDateW(pickedDate):'タップしてカレンダーから選ぶ')+'</small></span>'+
-     '<input id="inDate" type="date" max="'+t+'" value="'+esc(pickedDate||"")+'" aria-label="受診日" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;border:0;margin:0;padding:0;font-size:16px"/></div>';
-  h+='</div></div>';
-  h+='<div class="foot" id="dateFoot"'+(pickedDate?'':' hidden')+'><button class="btn main" type="button" data-act="useDate">'+(pickedDate?esc(jpDateW(pickedDate)):'')+'にする</button></div>';
+  if(!pickedDate&&rec.date)pickedDate=rec.date;
+  if(!calMonth)calMonth=(pickedDate||todayIso()).slice(0,7);
+  var h=topBar("レシートを記録",[5,REC_STEPS])+'<div class="body"><h1 class="q">受診した日は？</h1><p class="hint">レシートに書いてある日付をタップしてください。</p>';
+  h+='<div id="calBox">'+calHtml()+'</div></div>';
+  h+='<div class="foot"><button class="btn main" type="button" data-act="useDate" id="dateBtn"'+(pickedDate?'':' disabled')+'>'+(pickedDate?esc(jpDateW(pickedDate))+'にする':'日付を選んでください')+'</button></div>';
   return h;
 };
-AFTER.recDate=function(){
-  var i=$("inDate");
-  // パソコンのブラウザでは、欄のどこを押してもカレンダーが開くように
-  i.addEventListener("click",function(){try{if(i.showPicker)i.showPicker();}catch(e){}});
-  function upd(){
-    var v=i.value;
-    if(!v)return;
-    if(v>todayIso()){toast("未来の日付は選べません");return;}
-    pickedDate=v;
-    $("otherLab").textContent=jpDateW(v);
-    $("otherBox").classList.add("on");
-    document.querySelectorAll('[data-act="setDate"]').forEach(function(b){b.classList.remove("on");});
-    var f=$("dateFoot");f.hidden=false;f.querySelector("button").textContent=jpDateW(v)+"にする";
-  }
-  i.addEventListener("change",upd);
-  i.addEventListener("input",upd);
-};
+function refreshCal(){
+  $("calBox").innerHTML=calHtml();
+  var b=$("dateBtn");b.disabled=!pickedDate;b.textContent=pickedDate?jpDateW(pickedDate)+"にする":"日付を選んでください";
+}
 
 /* ---------- 記録: 確認 ---------- */
 SCREENS.recCheck=function(){
@@ -1150,7 +1165,7 @@ async function savePdf(c){
 /* ========================================================
    操作
    ======================================================== */
-function startRec(){pickedDate="";rec={mode:"new",id:uid(),person:"",category:"",condition:"",amount:"",date:"",auto:{},blob:null,thumb:"",fileType:"",fileName:""};go("recType");}
+function startRec(){pickedDate="";calMonth="";rec={mode:"new",id:uid(),person:"",category:"",condition:"",amount:"",date:"",auto:{},blob:null,thumb:"",fileType:"",fileName:""};go("recType");}
 function nextAfter(step){
   // 確認画面から直しに来た場合は確認画面に戻る
   if(rec.fromCheck){
@@ -1206,9 +1221,10 @@ function act(a,el){
     case "useDate":
       if(!pickedDate)break;
       if(rec.auto&&pickedDate!==rec.date)delete rec.auto.date;
-      rec.date=pickedDate;pickedDate="";nextAfter("recDate");break;
-    case "setDate": pickedDate="";if(rec.auto&&d.v!==rec.date)delete rec.auto.date;rec.date=d.v;nextAfter("recDate");break;
-    case "editStep": pickedDate="";rec.fromCheck=true;go(d.step);break;
+      rec.date=pickedDate;pickedDate="";calMonth="";nextAfter("recDate");break;
+    case "calPick": pickedDate=d.v;refreshCal();break;
+    case "calMove": calMonth=addMonth(calMonth,Number(d.v));refreshCal();break;
+    case "editStep": pickedDate="";calMonth="";rec.fromCheck=true;go(d.step);break;
     case "saveRec": saveRec();break;
     case "cancelRec": if(confirm("このレシートの記録をやめますか？")){rec=null;home();}break;
     case "delRec":
