@@ -354,6 +354,7 @@ function itemHtml(r,mode){
   var tag="";
   if(mode==="list"){
     if(r.claimedAt)tag='<span class="tag done">申請済み</span>';
+    else if(badFiles[r.id])tag='<span class="tag todo" style="background:#FDE8E4;color:#B42318">要差し替え</span>';
     else if(daysSince(r.date)>=WARN_DAYS)tag='<span class="tag old">はやめに申請</span>';
     else tag='<span class="tag todo">まだ</span>';
     right='<div class="r">'+esc(fmtMoney(r.amount,cur()))+'<br>'+tag+'</div>';
@@ -388,6 +389,10 @@ SCREENS.home=function(){
   ds.forEach(function(c){
     h+='<button class="alert todo" type="button" data-act="resume" data-id="'+esc(c.id)+'"><span class="em">📨</span><span><b>「申請済み」にしていない申請書があります</b><span>'+c.receiptIds.length+'件・'+esc(c.totalText||"")+' → タップしてつづける</span></span></button>';
   });
+  var bads=list.filter(function(r){return badFiles[r.id];});
+  if(bads.length){
+    h+='<button class="alert todo" type="button" data-act="openRec" data-id="'+esc(bads[0].id)+'" style="background:#FDE8E4;color:#7A1C10"><span class="em">⚠️</span><span><b>差し替えが必要なレシートがあります（'+bads.length+'件）</b><span>'+esc(bads[0].person)+'・'+esc(jpDate(bads[0].date))+'・'+esc(fmtMoney(bads[0].amount,cur()))+' → タップして写真に差し替え</span></span></button>';
+  }
   var oldest=list.reduce(function(m,r){return Math.max(m,daysSince(r.date));},0);
   if(list.length&&oldest>=WARN_DAYS){
     h+='<div class="alert warn"><span class="em">⏰</span><span><b>受診から'+oldest+'日たったレシートがあります</b><span>申請は受診から'+DEADLINE_DAYS+'日以内が目安です</span></span></div>';
@@ -451,16 +456,24 @@ SCREENS.recPdf=function(){
 };
 
 /* ---------- 記録: パスワード付きPDF ---------- */
-SCREENS.recPdfLocked=function(){
-  return topBar("メールのPDF",[1,REC_STEPS])+
-  '<div class="body"><h1 class="q">このPDFは<br>パスワード付きです</h1>'+
-  '<p class="hint">このままでは申請書に入れられません。画面を撮って、写真として記録しましょう。</p>'+
-  '<div class="steps">'+
-  '<div class="step"><h3><span class="n">1</span>PDFを開く</h3><p style="margin:0">メールのPDFをタップし、パスワードを入れて開きます（多くは生年月日の「日日月月」4けた）。</p></div>'+
-  '<div class="step"><h3><span class="n">2</span>スクリーンショットを撮る</h3><p style="margin:0">金額と日付が見える状態で、サイドボタンと音量ボタン（上）を同時に押します。</p></div>'+
-  '<div class="step"><h3><span class="n">3</span>写真から選ぶ</h3><p style="margin:0">下のボタンを押して、いま撮ったスクリーンショットを選びます。</p></div>'+
-  '</div></div>'+
-  '<div class="foot"><button class="btn main" type="button" data-act="pickPhoto">🖼️ スクリーンショットを選ぶ</button></div>';
+SCREENS.recFileError=function(kind){
+  var shotSteps='<div class="steps">'+
+    '<div class="step"><h3><span class="n">1</span>PDFを開く</h3><p style="margin:0">メールのPDFをタップして開きます'+(kind==="pw"?'（パスワードは多くの場合、生年月日の「日日月月」4けた）':'')+'。</p></div>'+
+    '<div class="step"><h3><span class="n">2</span>スクリーンショットを撮る</h3><p style="margin:0">金額と日付が見える状態で、サイドボタンと音量ボタン（上）を同時に押します。</p></div>'+
+    '<div class="step"><h3><span class="n">3</span>写真から選ぶ</h3><p style="margin:0">下のボタンを押して、いま撮ったスクリーンショットを選びます。</p></div></div>';
+  var t={
+    pw:{h:"このPDFは<br>パスワード付きです",p:"パスワードがかかったPDFは、申請書に入れられません。画面を撮って、写真として記録しましょう。",body:shotSteps,
+        foot:'<button class="btn main" type="button" data-act="pickPhoto">🖼️ スクリーンショットを選ぶ</button>'},
+    pdf:{h:"このPDFは<br>使えません",p:"ファイルが壊れているか、特殊な形式のため、申請書に入れられません。画面を撮って、写真として記録しましょう。",body:shotSteps,
+        foot:'<button class="btn main" type="button" data-act="pickPhoto">🖼️ スクリーンショットを選ぶ</button>'},
+    img:{h:"この写真は<br>読み込めません",p:"写真のデータが壊れているか、対応していない形式です。もう一度撮るか、別の写真を選んでください。",body:"",
+        foot:'<button class="btn main" type="button" data-act="pickCam">📷 カメラで撮る</button><button class="btn ghost" type="button" data-act="pickPhoto">🖼️ 写真から選ぶ</button>'},
+    offline:{h:"PDFを<br>確認できませんでした",p:"インターネットにつながっていないため、PDFが使えるか確認できませんでした。つながる場所で、もう一度選んでください。",body:"",
+        foot:'<button class="btn main" type="button" data-act="pickPdf">📄 もう一度PDFを選ぶ</button>'}
+  }[kind]||{};
+  return topBar("レシートを記録",[1,REC_STEPS])+
+    '<div class="body"><div class="done-mark" style="margin:6px 0 0;font-size:52px;text-align:left">⚠️</div><h1 class="q">'+t.h+'</h1><p class="hint">'+t.p+'</p>'+t.body+'</div>'+
+    '<div class="foot">'+t.foot+'</div>';
 };
 
 /* ---------- 記録: 誰 ---------- */
@@ -557,6 +570,7 @@ SCREENS.recCheck=function(){
   if(anyAuto)h+='<div class="alert info" style="margin:0 0 14px;width:100%"><span class="em">📖</span><span><b>レシートから読み取りました</b><span>「読取」の印がある項目は、レシートと合っているか見てください。</span></span></div>';
   else if(!editing)h+='<p class="hint">ちがうところはタップして直せます。</p>';
   function badge(k){return anyAuto&&au[k]?' <span class="tag old" style="vertical-align:middle;white-space:nowrap">読取</span>':'';}
+  if(editing&&!claimed&&badFiles[rec.id]){var ft=FAIL_TEXT[badFiles[rec.id]]||FAIL_TEXT.pdf;h+='<div class="alert" style="margin:0 0 14px;width:100%;background:#FDE8E4;color:#7A1C10"><span class="em">⚠️</span><span><b>'+ft.t+'</b><span>'+ft.s+'</span></span></div>';}
   if(rec.fileType==="pdf")h+='<button class="pdfmark" type="button" data-act="viewImg" style="width:100%;text-align:left"><span class="em">📄</span><span style="flex:1">'+esc(rec.fileName||"PDFファイル")+'</span><span class="ed" style="color:var(--main)">開く</span></button>';
   else if(rec.thumb)h+='<img class="photo" src="'+rec.thumb+'" alt="レシート" data-act="viewImg" style="max-height:22vh"/><p class="note" style="margin:-8px 0 12px">写真をタップすると大きく見られます</p>';
   var dis=claimed?' disabled':'';
@@ -569,8 +583,10 @@ SCREENS.recCheck=function(){
   h+='</div>';
   if(claimed)h+='<p class="note">申請済みのため変更できません。</p>';
   h+='</div><div class="foot">';
-  if(!claimed)h+='<button class="btn main" type="button" data-act="saveRec">'+(editing?'この内容で保存':'✓ 保存する')+'</button>';
-  if(editing&&!claimed)h+='<button class="btn ghost" type="button" data-act="replaceFile">🖼️ レシートの写真を差し替える</button>';
+  var isBad=editing&&!claimed&&badFiles[rec.id];
+  if(isBad)h+='<button class="btn main" type="button" data-act="replaceFile">🖼️ レシートの写真を差し替える</button>';
+  if(!claimed)h+='<button class="btn '+(isBad?'ghost':'main')+'" type="button" data-act="saveRec">'+(editing?'この内容で保存':'✓ 保存する')+'</button>';
+  if(editing&&!claimed&&!isBad)h+='<button class="btn ghost" type="button" data-act="replaceFile">🖼️ レシートの写真を差し替える</button>';
   if(editing)h+='<button class="btn text danger" type="button" data-act="delRec">このレシートを削除</button>';
   else h+='<button class="btn text" type="button" data-act="cancelRec">やめる</button>';
   h+='</div>';
@@ -881,6 +897,34 @@ async function processImage(file){
 }
 function ab(blob){if(blob.arrayBuffer)return blob.arrayBuffer();return new Promise(function(res,rej){var f=new FileReader();f.onload=function(){res(f.result);};f.onerror=function(){rej(f.error);};f.readAsArrayBuffer(blob);});}
 
+/* ---------- 申請書に入れられるファイルか確認 ---------- */
+var PDFLIB_URL="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js";
+async function ensurePdfLib(){if(!window.PDFLib){try{await loadScript(PDFLIB_URL);}catch(e){}}return !!window.PDFLib;}
+// 戻り値: null=OK / "pw"=パスワード付き / "pdf"=読めないPDF / "img"=読めない画像 / "offline"=確認できない
+async function checkFile(blob,type){
+  if(type==="pdf"){
+    if(!(await ensurePdfLib()))return "offline";
+    try{
+      var src=await PDFLib.PDFDocument.load(await ab(blob));
+      var t=await PDFLib.PDFDocument.create();
+      (await t.copyPages(src,src.getPageIndices())).forEach(function(pg){t.addPage(pg);});
+      await t.save();
+      return null;
+    }catch(e){return /encrypt/i.test(String(e&&(e.name+" "+e.message)))?"pw":"pdf";}
+  }
+  var url=URL.createObjectURL(blob);
+  try{await loadImage(url);return null;}catch(e){return "img";}finally{URL.revokeObjectURL(url);}
+}
+var badFiles={}; // 登録済みで申請書に入れられないレシート {id:kind}
+async function scanStored(){
+  var list=unclaimed();
+  for(var i=0;i<list.length;i++){
+    var r=list[i];
+    try{var k=await checkFile(r.blob,r.fileType);if(k&&k!=="offline")badFiles[r.id]=k;else delete badFiles[r.id];}catch(e){}
+  }
+  if(cur_screen&&(cur_screen.name==="home"||cur_screen.name==="list"))render();
+}
+
 async function onFile(file,want){
   if(!file){if(rec)rec.replacing=false;return;}
   if(rec&&rec.replacing){
@@ -890,31 +934,29 @@ async function onFile(file,want){
       var pr=await processImage(file);hideLoading();
       rec.blob=pr.blob;rec.thumb=pr.thumb;rec.fileType="image";rec.fileName=file.name||"";
       render();toast("差し替えました。「この内容で保存」を押してください");
-    }catch(e){hideLoading();toast("写真を読み込めませんでした");}
+    }catch(e){hideLoading();alert("この写真は読み込めませんでした。\nもう一度撮るか、別の写真を選んでください。");}
     return;
   }
   var isPdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name||"");
   if(want==="pdf"&&!isPdf){toast("PDFファイルを選んでください");return;}
   try{
     if(isPdf){
-      // パスワード付きPDFは結合すると白紙になるため、ここで見分ける
-      if(window.PDFLib){
-        try{await PDFLib.PDFDocument.load(await ab(file));}
-        catch(pe){
-          if(/encrypt/i.test(String(pe&&(pe.name+" "+pe.message)))){go("recPdfLocked");return;}
-          toast("このPDFは開けませんでした。スクリーンショットで記録してください");go("recPdfLocked");return;
-        }
-      }
+      // 申請書に入れられるPDFか、登録の時点で確認する
+      showLoading("PDFを確認しています");
+      var bad=await checkFile(file,"pdf");hideLoading();
+      if(bad){go("recFileError",bad);return;}
       rec.blob=file;rec.thumb="";rec.fileType="pdf";rec.fileName=file.name||"";
     }else{
       showLoading("写真を読み込んでいます");
-      var p=await processImage(file);hideLoading();
+      var p;
+      try{p=await processImage(file);}catch(ie){hideLoading();go("recFileError","img");return;}
+      hideLoading();
       rec.blob=p.blob;rec.thumb=p.thumb;rec.fileType="image";rec.fileName=file.name||"";
     }
     if(members().length===1&&!rec.person)rec.person=members()[0];
     await autoRead();
     go(nextMissing());
-  }catch(e){hideLoading();console.error(e);toast("ファイルを読み込めませんでした");}
+  }catch(e){hideLoading();console.error(e);go("recFileError",isPdf?"pdf":"img");}
 }
 
 /* ========================================================
@@ -1223,6 +1265,7 @@ async function saveRec(){
     createdAt:ex?ex.createdAt:new Date().toISOString(),claimedAt:ex?ex.claimedAt:null,claimId:ex?ex.claimId:null};
   try{await dbPut("receipts",r);}catch(e){toast("保存できませんでした");return;}
   var i=receipts.findIndex(function(x){return x.id===r.id;});if(i>=0)receipts[i]=r;else receipts.push(r);
+  delete badFiles[r.id];
   var wasEdit=rec.mode==="edit";rec=null;
   if(wasEdit){toast("保存しました");stack=[{name:"home"}];cur_screen={name:"list"};render();}
   else{stack=[];cur_screen={name:"recDone"};render();}
@@ -1347,6 +1390,7 @@ $("viewerClose").addEventListener("click",function(){$("viewer").hidden=true;var
 (async function init(){
   try{receipts=await dbAll("receipts");claims=await dbAll("claims");}catch(e){console.error(e);toast("データを読み込めませんでした");}
   home();
+  setTimeout(scanStored,300);
   if(navigator.storage&&navigator.storage.persist){try{navigator.storage.persist();}catch(e){}}
 })();
 })();
