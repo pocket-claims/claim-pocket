@@ -131,6 +131,8 @@ p.hint{color:var(--sub);font-size:16px;margin-bottom:18px}
 .item.sel .box{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex:none}
 .item.sel.on{border-color:var(--main);background:var(--main-soft)}
 .item.sel.on .box{background:var(--main);border-color:var(--main)}
+.item.sel.on.del{border-color:var(--danger);background:#FDE8E4}
+.item.sel.on.del .box{background:var(--danger);border-color:var(--danger)}
 .empty{text-align:center;color:var(--sub);padding:40px 10px;font-size:17px}
 
 /* ---------- 確認カード ---------- */
@@ -359,6 +361,7 @@ function itemHtml(r,mode){
     else tag='<span class="tag todo">まだ</span>';
     right='<div class="r">'+esc(fmtMoney(r.amount,cur()))+'<br>'+tag+'</div>';
   }
+  if(mode==="sel"&&r.claimedAt)right='<div class="r">'+esc(fmtMoney(r.amount,cur()))+'<br><span class="tag done">申請済み</span></div>';
   return (mode==="sel"?'<span class="box">✓</span>':'')+
     '<span class="ic">'+c.em+'</span>'+
     '<span class="mid"><span class="t">'+esc(r.person||"?")+'</span>'+
@@ -601,17 +604,57 @@ SCREENS.recDone=function(){
 };
 
 /* ---------- レシート一覧 ---------- */
+var delSel=null; // まとめて削除モードのとき {id:true}
+function delCount(){return delSel?Object.keys(delSel).filter(function(k){return delSel[k];}).length:0;}
 SCREENS.list=function(){
-  var h=topBar("記録したレシート")+'<div class="body">';
+  var mode=!!delSel;
+  var h='<div class="top"><button class="back" type="button" data-act="'+(mode?'delCancel':'back')+'" aria-label="もどる">‹</button><div class="top-title">'+(mode?'削除するレシートを選ぶ':'記録したレシート')+'</div>'+
+    (receipts.length?'<button type="button" class="chip" data-act="'+(mode?'delCancel':'delStart')+'" style="padding:8px 14px">'+(mode?'やめる':'🗑 選んで削除')+'</button>':'')+'</div><div class="body">';
   if(!receipts.length)return h+'<div class="empty">まだレシートがありません。</div></div>';
+  if(mode){
+    var nDone=receipts.filter(function(r){return r.claimedAt;}).length;
+    h+='<div class="chips" style="margin-bottom:6px">'+
+      (nDone?'<button class="chip" type="button" data-act="delPick" data-v="done">申請済みをすべて（'+nDone+'）</button>':'')+
+      '<button class="chip" type="button" data-act="delPick" data-v="all">すべて（'+receipts.length+'）</button>'+
+      (delCount()?'<button class="chip" type="button" data-act="delPick" data-v="none">選択を解除</button>':'')+'</div>';
+  }
   var map={};receipts.forEach(function(r){var k=monthKey(r.date)||"不明";(map[k]=map[k]||[]).push(r);});
   Object.keys(map).sort().reverse().forEach(function(k){
     var items=map[k].sort(function(a,b){return a.date<b.date?1:-1;});
-    h+='<div class="mhead"><span>'+esc(monthLabel(k))+'</span><span>'+esc(fmtMoney(sumOf(items),cur()))+'</span></div>';
-    items.forEach(function(r){h+='<button class="item" type="button" data-act="openRec" data-id="'+esc(r.id)+'">'+itemHtml(r,"list")+'</button>';});
+    h+='<div class="mhead"><span>'+esc(monthLabel(k))+'</span>'+
+      (mode?'<button type="button" data-act="delPick" data-v="m:'+esc(k)+'" style="color:var(--main);font-weight:800;font-size:15px">この月をすべて選ぶ</button>'
+           :'<span>'+esc(fmtMoney(sumOf(items),cur()))+'</span>')+'</div>';
+    items.forEach(function(r){
+      if(mode){
+        var on=!!delSel[r.id];
+        h+='<button class="item sel'+(on?' on del':'')+'" type="button" data-act="delToggle" data-id="'+esc(r.id)+'">'+itemHtml(r,"sel")+'</button>';
+      }else h+='<button class="item" type="button" data-act="openRec" data-id="'+esc(r.id)+'">'+itemHtml(r,"list")+'</button>';
+    });
   });
-  return h+'</div>';
+  h+='</div>';
+  if(mode){var n=delCount();
+    h+='<div class="foot"><button class="btn main" type="button" data-act="delRun" style="background:var(--danger);box-shadow:none"'+(n?'':' disabled')+'>🗑 '+(n?n+'件を削除':'削除するレシートを選んでください')+'</button></div>';}
+  return h;
 };
+async function deleteSelected(){
+  var ids=Object.keys(delSel).filter(function(k){return delSel[k];});
+  if(!ids.length)return;
+  var set={};ids.forEach(function(i){set[i]=1;});
+  var hitDrafts=drafts().filter(function(c){return (c.receiptIds||[]).some(function(id){return set[id];});});
+  var msg=ids.length+"件のレシートを削除します。\n削除すると元に戻せません。";
+  if(hitDrafts.length)msg+="\n\n※「申請済み」にしていない申請書に入っているレシートが含まれるため、その申請書("+hitDrafts.length+"件)も消えます。";
+  if(!confirm(msg))return;
+  showLoading("削除しています");
+  try{
+    for(var i=0;i<ids.length;i++)await dbDel("receipts",ids[i]);
+    for(var j=0;j<hitDrafts.length;j++)await dbDel("claims",hitDrafts[j].id);
+  }catch(e){hideLoading();alert("削除できませんでした。もう一度お試しください。");return;}
+  receipts=receipts.filter(function(r){return !set[r.id];});
+  var dIds={};hitDrafts.forEach(function(c){dIds[c.id]=1;});
+  claims=claims.filter(function(c){return !dIds[c.id];});
+  ids.forEach(function(id){delete badFiles[id];});
+  hideLoading();delSel=null;toast(ids.length+"件を削除しました");render();
+}
 
 /* ---------- 申請 1: えらぶ ---------- */
 var claimSel={};
@@ -1274,7 +1317,7 @@ async function saveRec(){
 function act(a,el){
   var d=el?el.dataset:{};
   switch(a){
-    case "back": back();break;
+    case "back": delSel=null;back();break;
     case "home": home();break;
     case "settings": go("settings");break;
     case "setup": setupFlow=true;go("setup",SETUP_ORDER.filter(function(k){return !setupChecks[k]();})[0]||"you");break;
@@ -1319,7 +1362,17 @@ function act(a,el){
       if(rec.fileType==="pdf"){var pu=URL.createObjectURL(rec.blob);window.open(pu,"_blank");setTimeout(function(){URL.revokeObjectURL(pu);},60000);break;}
       $("viewerImg").src=URL.createObjectURL(rec.blob);$("viewer").hidden=false;break;
 
-    case "list": go("list");break;
+    case "list": delSel=null;go("list");break;
+    case "delStart": delSel={};render();break;
+    case "delCancel": delSel=null;render();break;
+    case "delToggle": delSel[d.id]=!delSel[d.id];var sy=window.scrollY;render();window.scrollTo(0,sy);break;
+    case "delPick":
+      var v=d.v,sy2=window.scrollY;
+      if(v==="none")delSel={};
+      else receipts.forEach(function(r){
+        if(v==="all"||(v==="done"&&r.claimedAt)||(v.indexOf("m:")===0&&monthKey(r.date)===v.slice(2)))delSel[r.id]=true;});
+      render();window.scrollTo(0,sy2);break;
+    case "delRun": deleteSelected();break;
     case "openRec":
       var r=receipts.find(function(x){return x.id===d.id;});if(!r)break;
       rec={mode:"edit",id:r.id,person:r.person,category:r.category,condition:r.condition||"",amount:r.amount,date:r.date,
