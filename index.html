@@ -378,7 +378,7 @@ function topBar(title,progress){
 }
 
 /* ---------- 保存データの大きさ ---------- */
-var STORAGE_WARN_MB=50; // これを超えたら、削除をおすすめする
+var STORAGE_WARN_MB=20; // これを超えたら、削除をおすすめする
 function dataBytes(){
   var n=0;
   receipts.forEach(function(r){n+=(r.blob&&r.blob.size)||0;if(r.thumb)n+=Math.round(r.thumb.length*0.75);});
