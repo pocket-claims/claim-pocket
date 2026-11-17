@@ -570,6 +570,7 @@ SCREENS.recCheck=function(){
   if(claimed)h+='<p class="note">申請済みのため変更できません。</p>';
   h+='</div><div class="foot">';
   if(!claimed)h+='<button class="btn main" type="button" data-act="saveRec">'+(editing?'この内容で保存':'✓ 保存する')+'</button>';
+  if(editing&&!claimed)h+='<button class="btn ghost" type="button" data-act="replaceFile">🖼️ レシートの写真を差し替える</button>';
   if(editing)h+='<button class="btn text danger" type="button" data-act="delRec">このレシートを削除</button>';
   else h+='<button class="btn text" type="button" data-act="cancelRec">やめる</button>';
   h+='</div>';
@@ -664,6 +665,30 @@ SCREENS.claimSend=function(id){
   h+='<div class="step"><h3><span class="n">3</span>保険会社に送ったら押す</h3><p>送り方はいつもどおりで大丈夫です（送り先：'+esc(insurerEmail())+'）。押すと、このレシートは「申請済み」になります。</p><button class="btn main" type="button" data-act="markSent" data-id="'+esc(c.id)+'">✓ 申請しました</button></div>';
   h+='</div><div style="margin-top:14px"><button class="btn text" type="button" data-act="home">あとで（ホームから続けられます）</button>'+
      '<button class="btn text danger" type="button" data-act="discard" data-id="'+esc(c.id)+'">この申請書を作り直す</button></div></div>';
+  return h;
+};
+
+/* ---------- 申請: 入れられないレシートがあったとき ---------- */
+var claimFails=[];
+var FAIL_TEXT={
+  pw:{t:"パスワード付きのPDFです",s:"パスワードがかかっていると、申請書に入れられません。PDFを開いてスクリーンショットを撮り、写真に差し替えてください。"},
+  pdf:{t:"このPDFを読み込めませんでした",s:"ファイルが壊れているか、特殊な形式の可能性があります。PDFを開いてスクリーンショットを撮り、写真に差し替えてください。"},
+  img:{t:"この写真を読み込めませんでした",s:"写真のデータが壊れている可能性があります。撮り直して差し替えてください。"}
+};
+SCREENS.claimFail=function(){
+  var h=topBar("申請書をつくる")+'<div class="body"><div class="done-mark" style="margin:6px 0 0;font-size:56px">⚠️</div>'+
+    '<h1 class="q" style="text-align:center">申請書を<br>作れませんでした</h1>'+
+    '<p class="hint" style="text-align:center">次のレシートを申請書に入れられませんでした。<br>このままでは、このレシートのページが抜けてしまいます。</p>';
+  claimFails.forEach(function(f){
+    var r=receipts.find(function(x){return x.id===f.id;});if(!r)return;
+    var t=FAIL_TEXT[f.kind]||FAIL_TEXT.pdf;
+    h+='<div class="step" style="margin-bottom:12px;border-color:#F3C2B6"><div class="item" style="border:none;padding:0;margin-bottom:8px;min-height:0">'+itemHtml(r,"plain")+'</div>'+
+       '<h3 style="font-size:17px;color:var(--danger)">'+t.t+'</h3><p>'+t.s+'</p>'+
+       '<button class="btn ghost" type="button" data-act="openRec" data-id="'+esc(r.id)+'">📷 写真に差し替える</button></div>';
+  });
+  h+='</div><div class="foot">'+
+     '<button class="btn main" type="button" data-act="dropFailed">このレシートを外してつくる</button>'+
+     '<button class="btn text" type="button" data-act="back">選ぶ画面にもどる</button></div>';
   return h;
 };
 
@@ -857,7 +882,17 @@ async function processImage(file){
 function ab(blob){if(blob.arrayBuffer)return blob.arrayBuffer();return new Promise(function(res,rej){var f=new FileReader();f.onload=function(){res(f.result);};f.onerror=function(){rej(f.error);};f.readAsArrayBuffer(blob);});}
 
 async function onFile(file,want){
-  if(!file)return;
+  if(!file){if(rec)rec.replacing=false;return;}
+  if(rec&&rec.replacing){
+    rec.replacing=false;
+    try{
+      showLoading("写真を読み込んでいます");
+      var pr=await processImage(file);hideLoading();
+      rec.blob=pr.blob;rec.thumb=pr.thumb;rec.fileType="image";rec.fileName=file.name||"";
+      render();toast("差し替えました。「この内容で保存」を押してください");
+    }catch(e){hideLoading();toast("写真を読み込めませんでした");}
+    return;
+  }
   var isPdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name||"");
   if(want==="pdf"&&!isPdf){toast("PDFファイルを選んでください");return;}
   try{
@@ -1105,6 +1140,7 @@ async function formCanvas(rows,cm){
 }
 async function recompress(blob,max,q){var url=URL.createObjectURL(blob);try{var img=await loadImage(url);return await ab(await toBlob(drawScaled(img,max),q));}finally{URL.revokeObjectURL(url);}}
 async function assemblePdf(sel,cm,imgMax,imgQ){
+  var failures=[];
   var doc=await PDFLib.PDFDocument.create(),W=595.28,H=841.89,M=24,c=normCur(cm.currency);
   var fc=await formCanvas(sel,cm),fi=await doc.embedJpg(fc.toDataURL("image/jpeg",0.92));
   var dw=W-M*2,dh=fc.height*dw/fc.width,pg=doc.addPage([W,H]);
@@ -1114,7 +1150,9 @@ async function assemblePdf(sel,cm,imgMax,imgQ){
     $("loadingText").textContent="レシートをまとめています（"+(i+1)+"/"+sel.length+"）";
     try{
       if(r.fileType==="pdf"){
-        var src=await PDFLib.PDFDocument.load(await ab(r.blob),{ignoreEncryption:true});
+        var src;
+        try{src=await PDFLib.PDFDocument.load(await ab(r.blob));}
+        catch(le){if(/encrypt/i.test(String(le&&(le.name+" "+le.message)))){var pe=new Error("encrypted");pe.kind="pw";throw pe;}throw le;}
         (await doc.copyPages(src,src.getPageIndices())).forEach(function(p){doc.addPage(p);});
       }else{
         var img=await doc.embedJpg(await recompress(r.blob,imgMax,imgQ)),page=doc.addPage([W,H]);
@@ -1122,9 +1160,10 @@ async function assemblePdf(sel,cm,imgMax,imgQ){
         page.drawImage(img,{x:(W-w)/2,y:H-M-24-hh,width:w,height:hh});
         try{page.drawText(((i+1)+". "+r.person+"  "+isoToAu(r.date)+"  ["+r.category+"]  "+c+" "+fmtAmt(r.amount,c)).replace(/[^\x20-\x7E]/g,""),{x:M,y:H-M-12,size:10,color:PDFLib.rgb(.2,.25,.3)});}catch(e2){}
       }
-    }catch(e){console.error(e);toast((i+1)+"件目のレシートを入れられませんでした");}
+    }catch(e){console.error(e);failures.push({id:r.id,kind:(e&&e.kind)||(r.fileType==="pdf"?"pdf":"img")});}
   }
-  return await doc.save();
+  if(failures.length)return {failures:failures};
+  return {bytes:await doc.save(),failures:[]};
 }
 async function makePdf(){
   if(!profileReady()){toast("先に申請書の情報を登録します");setupFlow=true;go("setup",SETUP_ORDER.filter(function(k){return !setupChecks[k]();})[0]);return;}
@@ -1135,8 +1174,10 @@ async function makePdf(){
   if(!window.PDFLib||!window.html2canvas){alert("インターネットにつながっているか確認して、もう一度開き直してください。");return;}
   showLoading("申請書をつくっています");
   try{
-    var bytes=await assemblePdf(sel,cm,1200,0.72);
-    if(bytes.length>9.5*1024*1024){$("loadingText").textContent="ファイルを小さくしています";bytes=await assemblePdf(sel,cm,900,0.55);}
+    var out=await assemblePdf(sel,cm,1200,0.72);
+    if(out.failures.length){hideLoading();claimFails=out.failures;go("claimFail");return;}
+    var bytes=out.bytes;
+    if(bytes.length>9.5*1024*1024){$("loadingText").textContent="ファイルを小さくしています";bytes=(await assemblePdf(sel,cm,900,0.55)).bytes;}
     var c={id:uid(),createdAt:new Date().toISOString(),status:"draft",receiptIds:sel.map(function(r){return r.id;}),
       totalText:fmtMoney(sumOf(sel),cur()),filename:claimFilename(),pdfBlob:new Blob([bytes],{type:"application/pdf"})};
     await dbPut("claims",c);claims.push(c);claimSel={};
@@ -1252,6 +1293,11 @@ function act(a,el){
       if(!claimSel[d.id]&&n>=CLAIM_ROW_MAX){toast("1回で申請できるのは"+CLAIM_ROW_MAX+"件までです");break;}
       claimSel[d.id]=!claimSel[d.id];var y=window.scrollY;render();window.scrollTo(0,y);break;
     case "makePdf": makePdf();break;
+    case "dropFailed":
+      claimFails.forEach(function(f){claimSel[f.id]=false;});claimFails=[];
+      if(!claimPool().some(function(r){return claimSel[r.id];})){toast("申請書に入れるレシートがありません");back();break;}
+      cur_screen=stack.pop()||{name:"claimPick"};makePdf();break;
+    case "replaceFile": rec.replacing=true;$("filePhoto").click();break;
     case "resume": go("claimSend",d.id);break;
     case "previewPdf":
       var c1=claims.find(function(x){return x.id===d.id;});if(!c1)break;
