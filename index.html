@@ -348,9 +348,29 @@ function openDb(){
   return dbPromise;
 }
 function dbOp(store,mode,fn){return openDb().then(function(db){return new Promise(function(res,rej){var tx=db.transaction(store,mode);fn(tx.objectStore(store));tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});});}
-function dbPut(s,v){return dbOp(s,"readwrite",function(st){st.put(v);});}
+/* 一部の環境(プライベートブラウズ、他のアプリの中のブラウザなど)では、ファイル(Blob)をそのまま保存できない。
+   そのときはファイルを中身のデータに変えて保存し直す。読み込むときにファイルに戻す。 */
+var blobFallback=false;
+function blobToBuf(b){return b.arrayBuffer?b.arrayBuffer():new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result);};fr.onerror=function(){rej(fr.error);};fr.readAsArrayBuffer(b);});}
+async function flatten(v){var o={};for(var k in v){var x=v[k];if(x instanceof Blob)o[k]={__blob:await blobToBuf(x),type:x.type||""};else o[k]=x;}return o;}
+function inflate(v){if(!v||typeof v!=="object")return v;for(var k in v){var x=v[k];if(x&&typeof x==="object"&&x.__blob instanceof ArrayBuffer)v[k]=new Blob([x.__blob],{type:x.type||""});}return v;}
+function hasBlob(v){for(var k in v)if(v[k] instanceof Blob)return true;return false;}
+async function dbPut(s,v){
+  if(!blobFallback){
+    try{await dbOp(s,"readwrite",function(st){st.put(v);});return;}
+    catch(e){if(!hasBlob(v))throw e;console.warn("blob put failed, retry as buffer",e);}
+  }
+  var f=hasBlob(v)?await flatten(v):v;
+  await dbOp(s,"readwrite",function(st){st.put(f);});
+  if(!blobFallback){blobFallback=true;noteFallback();}
+}
+function noteFallback(){
+  if(isStandalone())return;
+  try{if(sessionStorage.getItem("cp_fb_note"))return;sessionStorage.setItem("cp_fb_note","1");}catch(e){}
+  setTimeout(function(){alert("保存できました。\n\nただ、いまは「プライベート」のタブか、ほかのアプリ（Teams・LINEなど）の中で開いているようです。この状態では、閉じると記録が消えることがあります。\n\n通常のSafariで開いて「ホーム画面に追加」してから使ってください。");},400);
+}
 function dbDel(s,k){return dbOp(s,"readwrite",function(st){st.delete(k);});}
-function dbAll(s){return openDb().then(function(db){return new Promise(function(res,rej){var r=db.transaction(s,"readonly").objectStore(s).getAll();r.onsuccess=function(){res(r.result||[]);};r.onerror=function(){rej(r.error);};});});}
+function dbAll(s){return openDb().then(function(db){return new Promise(function(res,rej){var r=db.transaction(s,"readonly").objectStore(s).getAll();r.onsuccess=function(){res((r.result||[]).map(inflate));};r.onerror=function(){rej(r.error);};});});}
 
 /* ---------- 状態 ---------- */
 var receipts=[],claims=[];
@@ -477,6 +497,9 @@ SCREENS.home=function(){
   var ready=profileReady();
   var list=unclaimed(), sel=selectable(), ds=drafts();
   var h='<div class="brand"><div><div class="wm" role="img" aria-label="Claim Pocket">Claim&nbsp;P'+LOGO_SVG+'cket</div><div class="tag-line">医療費の保険申請を、かんたんに</div></div>'+(ready?'<button class="gear" type="button" data-act="settings" aria-label="設定">⚙️<small>設定</small></button>':'')+'</div>';
+  if(inAppBrowser()){
+    h+='<button class="alert warn" type="button" data-act="copy" data-v="'+APP_URL+'"><span class="em">🧭</span><span><b>Safariで開いてください</b><span>いまは、ほかのアプリの中で開いています。ここでは記録が保存できなかったり、消えたりします。タップでアドレスをコピー → Safariに貼り付けて開いてください</span></span></button>';
+  }
 
   // 1) 基本情報が未登録 → 登録ボタンだけ
   if(!ready){
@@ -1544,6 +1567,10 @@ function copy(t,msg){
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,function(){fb();});}else fb();
   function fb(){var ta=document.createElement("textarea");ta.value=t;ta.style.cssText="position:fixed;left:-9999px";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");done();}catch(e){toast("コピーできませんでした");}document.body.removeChild(ta);}
 }
+function isStandalone(){return !!(window.navigator.standalone||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches));}
+function inAppBrowser(){var u=navigator.userAgent;if(!/iPhone|iPad|iPod/.test(u)||isStandalone())return false;
+  return /Teams|Line\/|FBAN|FBAV|Instagram|MicroMessenger|KAKAOTALK|GSA\//.test(u)||!/Safari\//.test(u);}
+var APP_URL="https://pocket-claims.github.io/claim-pocket/";
 function isMobile(){return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));}
 async function savePdf(c,quiet){
   // スマホ: 共有シート(「ファイル」に保存) / パソコン: そのままダウンロード。保存したら true
@@ -1598,7 +1625,7 @@ async function saveRec0(){
       await dropDraftsWith(r.id);
     }
   }
-  try{await dbPut("receipts",r);}catch(e){alert("保存できませんでした。\n端末の空き容量が足りないかもしれません。「記録したレシート」から申請書作成済みのレシートを削除して、もう一度お試しください。");return;}
+  try{await dbPut("receipts",r);}catch(e){console.error(e);alert(inAppBrowser()?"保存できませんでした。\nいまは、ほかのアプリの中で開いています。Safariで開き直してから、もう一度お試しください。":"保存できませんでした。\n\n・「プライベート」のタブで開いていたら、通常のタブで開き直してください。\n・iPhoneの空き容量が少ないときは、「記録したレシート」から申請書作成済みのレシートを削除してください。\n\nそれでもだめなときは、iPhoneを再起動してお試しください。");return;}
   if(r.category==="M"&&r.condition)rememberCond(r.condition,r.person);
   var i=receipts.findIndex(function(x){return x.id===r.id;});if(i>=0)receipts[i]=r;else receipts.push(r);
   delete badFiles[r.id];
@@ -1862,7 +1889,7 @@ $("viewerClose").addEventListener("click",closeViewer);
    開いたとき・アプリに戻ったときに、公開中の最新版を確かめる。
    新しい版があれば、入力の途中でなければその場で、途中ならホームに戻ったときに切り替える。
    データ（端末の中の保存）は切り替えても消えない。 */
-var APP_VERSION="2026-11-18a";
+var APP_VERSION="2026-11-19a";
 var updateReady=null;
 function checkUpdate(){
   if(!navigator.onLine||location.protocol==="file:")return;
